@@ -1,10 +1,10 @@
 import base64
-import hashlib
 import logging
 import os
 import re
 import ssl
 import subprocess
+import time
 from datetime import datetime
 from http import HTTPStatus
 from typing import List, TypedDict
@@ -18,7 +18,7 @@ from OpenSSL import crypto
 
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
-from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry
+from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4
 from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자
 from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xml_response, parse_response, \
     check_error_on_response, CustomHttpAdapter
@@ -27,6 +27,7 @@ from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xm
 class HometaxScraper:
     LOGIN_SUCCESS_CODE = 'S'
     HOMETAX_REQUEST_TIMEOUT = 7
+    PAGE_SIZE = 10
 
     user_info: 홈택스사용자 = None
     selected_trader: 납세자 = None
@@ -371,6 +372,38 @@ class HometaxScraper:
         self.tin = root.find('.//tin').text
         self.pubcUserNo = root.find('.//pubcUserNo').text
         self.subdomain = subdomain
+
+    def request_xml(self, url, payload):
+        return parse_response(self.session.post(
+            url,
+            data=self.nts_postfix_added(payload),
+            headers={'Content-Type': "application/xml; charset=UTF-8"}
+        ))
+
+    def request_paginated_xml(self, url, payload_before_page_info):
+        page = 1
+        while True:
+            res_xml = self.request_xml(url, f'{payload_before_page_info}'
+                                            f'<map id="pageInfoVO">'
+                                            f'<pageSize>{self.PAGE_SIZE}</pageSize><pageNum>{page}</pageNum>'
+                                            f'</map>'
+                                            f'</map>')  # pageInfo 이전의 payload만 받기 때문에 그 뒤에 map을 한 번 더 닫아줘야 한다.
+
+            yield from res_xml.findall('.//list/map')
+
+            if res_xml.find('.//map[@id="pageInfoVO"]/totalCount') is None:
+                raise Exception('홈택스 응답 오류: ' + ElementTree.tostring(res_xml, encoding='utf-8').decode('utf-8'))
+
+            if page * self.PAGE_SIZE > int(res_xml.find('.//map[@id="pageInfoVO"]/totalCount').text):
+                return
+
+            page += 1
+            # 홈택스 쓰로틀링에 걸리는 걸 방지하기 위해 페이지마다 간격을 둔다.
+            time.sleep(Throttled.wait)
+
+    def nts_postfix_added(self, payload):
+        second = datetime.now().strftime('%0S')
+        return f'{payload}<nts<nts>nts>{int(second) + 11}{k4(payload, second, userId=self.user_info.홈택스ID)}{second}'
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:

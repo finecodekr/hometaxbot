@@ -10,41 +10,6 @@ from requests import Response
 from hometaxbot import Throttled, HometaxException
 
 
-class PaginatedResponseGenerator:
-    def __init__(self, page_size=10):
-        self.num = 1
-        self.has_next = True
-        self.page_size = page_size
-
-    def elements(self, res: Response):
-        try:
-            res_xml = parse_response(res)
-            yield from res_xml.findall('.//list/map')
-
-            if res_xml.find('.//map[@id="pageInfoVO"]/totalCount') is None:
-                raise Exception('홈택스 응답 오류: ' + ElementTree.tostring(res_xml, encoding='utf-8').decode('utf-8'))
-
-            if self.num * self.page_size > int(res_xml.find('.//map[@id="pageInfoVO"]/totalCount').text):
-                self.has_next = False
-            else:
-                self.num += 1
-                # 홈택스 쓰로틀링에 걸리는 걸 방지하기 위해 페이지마다 간격을 둔다.
-                time.sleep(Throttled.wait)
-
-        except Throttled as e:
-            # 홈택스 쓰로틀링에 걸리면 그냥 기다리면 다음 반복 때 그대로 다시 요청하게 된다.
-            time.sleep(e.wait)
-
-    def __next__(self):
-        if self.has_next:
-            return self
-
-        raise StopIteration
-
-    def __iter__(self):
-        return self
-
-
 def nts_generate_random_string(length):
     """
     홈택스 스크립트에 있는 랜덤 스트링 제너레이션 포팅

@@ -1,3 +1,8 @@
+import base64
+import datetime
+import hashlib
+import hmac
+import re
 import typing
 from contextlib import contextmanager, ExitStack
 from datetime import date
@@ -53,3 +58,32 @@ def load_cert(files: List[typing.BinaryIO], password: str) -> pypinksign.PinkSig
 def validate_cert_expiry(sign):
     if sign.valid_date()[1].date() < date.today():
         raise HometaxException('공인인증서 유효기간이 지났습니다.')
+
+
+# 홈택스 js소스에 구현된 k1~k8암호화소스
+
+
+def k1(second):
+    # TODO testVal 매번 바뀌는지 확인필요
+    testVal = ["bakfuRUXvh9c3POvkdfUDHF91jijBhV2BvsuWE966SY", "rns6HuMkhT3FN8cIELHqYW51xHpk4oGOTetFjZ3Wog",
+               "ZobgiyO5GpHBj4XfBxpIsdtuxOVGOuxfvJ3cl7hg", "tQpnppnLO4DhApYt4Wpi2fP3ikontfDj5e4gL8fatL0",
+               "qyDYuOUwZO2GCykWTJJZrgRIGTg6z3FPBrIAyHxxI", "RF899ggdKY31TR3beawC7r7QbLAW1of4OrRaSWypA",
+               "ASNbDSqkpdq6ckOpIoGUyO5E6xeVulnMBIQJwOAvEI"]
+    return testVal[int(second) % 7]
+
+
+def k2(payload, testVal):
+    signature = hmac.new(testVal.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).digest()
+    return re.sub(r'[^0-9a-zA-Z]', r'', base64.b64encode(signature).decode('utf-8'))
+
+
+def k4(payload, second, userId=''):
+    return k2(payload+userId, k1(second))
+
+
+def k7():
+    return f'{datetime.now().second:02}'
+
+
+def k8(action_id, second):
+    return k4(action_id, second)
