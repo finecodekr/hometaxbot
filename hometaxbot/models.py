@@ -67,3 +67,27 @@ class 전자신고결과조회(HometaxModel):
     신고구분상세코드: str  # 예시: 01
     납세자명: str
     납세자번호: str
+
+
+@dataclass(kw_only=True)
+class 납부내역(HometaxModel):
+    세무서코드: str
+    세무서명: str
+    납부일: date
+    금액: Decimal
+    전자납부발행번호: str
+    세목: str
+    세목코드: str
+    전자납부번호: str
+
+
+@dataclass(kw_only=True)
+class 환급금조회(HometaxModel):
+    세무서코드: str
+    세무서명: str
+    세목: str
+    세목코드: str
+    환급결정일: date
+    최종변경일시: datetime
+    귀속연월: date
+    금액: Decimal

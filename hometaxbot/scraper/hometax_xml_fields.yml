@@ -92,3 +92,49 @@
     rcatMthdCd: # 14
     pmtCmpoTypeCd: # ZZ
     cvaAplnDtm: # 20191203145924
+납부내역:
+    romDt: 납부일  # 20200209
+    dmstxRomAmt: 금액  # 27000
+    impsTrgtTin:
+    romId:
+    itrfYm:   # 202002
+    cotpDcsClCd:
+    fnftxRomAmt:   # 0
+    cotpItrfYm:
+    dcsClCd:   # 4
+    txhfOgzNm: 세무서명  # 분당
+    taxYn:   # N
+    edctxRomAmt:   # 0
+    fnm:
+    dfstxRomAmt:   # 0
+    elctPmtPblNo: 전자납부발행번호
+    romFnnOrgnNm:   # 우리(본점영업부)
+    itrfCdNm: 세목  # 사업소득세
+    txprFnm:   #
+    elctPmtNo:   #
+    txhfOgzCd: 세무서코드  # 144
+    cotpElctPmtPblNo:
+    pmtDutyTin:
+    txprTnm:
+    atchRomAmt:   # 0
+    romAmt:   # 27000
+    itrfCd: 세목코드  # 13
+    romFnnOrgnCd:
+    bankElctPmtNo: 전자납부번호
+    cotpAppnDt:
+    cotpItrfCd:
+환급금조회:
+    itrfCd: 세목코드  # 31
+    lstAltDtm: 최종변경일시  # 20190418135507
+    txhfOgzCd: 세무서코드  # 144
+    rfndDcsDfntDt: 환급결정일  # 20190417
+    bokTrtRsltCd:   # 00
+    attrYm: 귀속연월  # 201812
+    rfndId:
+    impsTrgtTin:
+    rfndRpotId:
+    rfamtPymnAmt: 금액
+    pmtDutyTin:
+    rmtnBrkdId:
+    itrfNm: 세목  # 법인세
+    txhfOgzNm: 세무서명  # 분당
