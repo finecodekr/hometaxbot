@@ -1,3 +1,6 @@
+"""
+홈택스에 로그인해서 여러 가지 정보를 requests로 수집해오는 봇입니다.
+"""
 import random
 
 
@@ -19,3 +22,6 @@ class Throttled(HometaxException):
 
 def random_second():
     return random.randrange(30, 60)
+
+
+__version__ = '0.1.0'
