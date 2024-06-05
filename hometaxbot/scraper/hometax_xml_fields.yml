@@ -1,0 +1,94 @@
+홈택스사용자:
+    txprDscmNoEncCntn: 납세자번호
+    txprNm: 납세자명
+    userId: 홈택스ID
+    pubcUserNo: 홈택스사용자번호
+    pubcUserMpnoEncCntn: 휴대전화번호
+    pubcUserEmlAdrEncCntn: 전자메일주소
+    userClsfCd: 사용자구분
+    rprsResno:
+    rprsTxprNm:
+전자신고결과조회:
+    chrgTxhfOgzCd: 세무서코드 # 144
+    mateStatRsnCd:  # 01
+    txnrmYm: 과세연월 # 201911
+    rtnDt: 접수일 # 20191203
+    inchDutsCd: # ZZZZ
+    edctxWhlScpmTxamt: # 0
+    txaaTin: # 100000000022898459
+    mtfbCd: 업종코드
+    frsRgtDtm: # 20191203145916
+    rtnClNm: 신고구분 # 정기(확정)
+    frsRgtDataMaagPgmId: # TrnsFleMateAdmWhtxBSVC
+    tin:
+    statusValue:
+    lstStmnYn: # Y
+    lstAltDataMaagUserId:
+    aprpAfthPmtTxamt: # 0
+    ogntxSbtrPmtTxamt:  금액 # 503580
+    rtnCvaId: 접수번호
+    stmnKndCd: 신고서종류코드 # F01
+    rtnClDetailNm: 신고유형 # 정기신고
+    lstAltDataMaagClCd: # 02
+    edctxAddVlpySchuTxamt: # 0
+    amdChrgDutsCd: # 7315
+    frmlCd: # C103900
+    amdChrgTxhfOgzCd: # 282
+    mateStatClCd: # 01
+    chrgDutsCd: # EM06
+    dcsTxamt: # 0
+    stmnWrtMthdCd: # 03
+    cvaAgnRltCdNm: # 세무대리인
+    itrfCd: # 14
+    paygSchuTxamt: # 0
+    fnftxSbtrScpmTxamt: # 0
+    ogntxSbtrScpmTxamt:  # 503580
+    cmptTxamt: # 0
+    lstAltDtm: 접수일시 # 20191203145924
+    inptOptrMemNo: # ZZZZZZZ
+    rcatDt: # 20191203
+    ptpSchuTxamt: # 0
+    fnftxSbtrPmtTxamt: # 0
+    taPgmCd: # 1001
+    errVrfDtm: # 20191203145916
+    pymnYm: # 201911
+    sbmsYm: # 201912
+    userId: 홈택스ID
+    reTxamt: # 0
+    ppmTxamt: # 0
+    stmnKndNm: 신고서종류 # 원천징수이행상황신고서
+    edctxSbtrPmtTxamt: # 0
+    stasAmt: 공급가액 # 10500000
+    rtnVldtDt: # 20241203
+    adtTxamt: # 0
+    ddcTxamt: # 0
+    frsRgtDataMaagClCd: # 02
+    lstAltDataMaagPgmId: # UTERNAAZ48
+    rtnPrgrSttnCd: # 10
+    ogntxWhlScpmTxamt: # 0
+    apndDcumRcpnScntTxt: 접수여부_첨부서류 # 정상(1종)
+    txnrmStrtDt: 과세기간시작일 # 20191101
+    rcatNo: # 14420192501648434088
+    inchTxhfOgzCd: # ZZZ
+    inptOptrDutsCd: # ZZZZ
+    fnftxInpmSchuTxamt: # 0
+    ogntxInpmSchuTxamt: # 0
+    rtnClCd: 신고구분코드 # 01
+    rtnRfndClCd: # ZZ
+    frsRgtDataMaagUserId:
+    ecabIdYn: # N
+    inptOptrTxhfOgzCd: # ZZZ
+    fnftxAddVlpySchuTxamt: # 0
+    pubcUserNo:
+    mdfAddVlpySchuTxamt: # 0
+    txnrmEndDt: 과세기간종료일 # 20191130
+    rtnClDetailCd: 신고구분상세코드 # 01
+    errVrfRsltCd: # 10
+    fnftxWhlScpmTxamt: # 0
+    cvaAgnRltCd: # 04
+    apndDcumRcpnScnt: # 1
+    txprNm: 납세자명
+    txprNo: 납세자번호
+    rcatMthdCd: # 14
+    pmtCmpoTypeCd: # ZZ
+    cvaAplnDtm: # 20191203145924
