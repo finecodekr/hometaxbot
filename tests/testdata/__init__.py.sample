@@ -1,0 +1,12 @@
+from pathlib import Path
+
+
+PATH = Path(__file__).parent
+
+
+PERSONAL_CERT = [PATH / 'signCert.der', PATH / 'signPri.key']
+PERSONAL_PASSWORD = 'mypassword'
+
+
+CORP_CERT = [PATH / 'company.pfx']
+CORP_PASSWORD = 'companypassword'
