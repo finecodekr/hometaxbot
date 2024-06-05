@@ -380,14 +380,14 @@ class HometaxScraper:
             headers={'Content-Type': "application/xml; charset=UTF-8"}
         ))
 
-    def request_paginated_xml(self, url, payload_before_page_info):
+    def request_paginated_xml(self, url, payload: str):
         page = 1
         while True:
-            res_xml = self.request_xml(url, f'{payload_before_page_info}'
-                                            f'<map id="pageInfoVO">'
-                                            f'<pageSize>{self.PAGE_SIZE}</pageSize><pageNum>{page}</pageNum>'
-                                            f'</map>'
-                                            f'</map>')  # pageInfo 이전의 payload만 받기 때문에 그 뒤에 map을 한 번 더 닫아줘야 한다.
+            res_xml = self.request_xml(url, payload.format(
+                pageInfoVO=f'<map id="pageInfoVO">'
+                           f'<pageSize>{self.PAGE_SIZE}</pageSize><pageNum>{page}</pageNum>'
+                           '<totalCount>0</totalCount>'
+                           f'</map>'))
 
             yield from res_xml.findall('.//list/map')
 
