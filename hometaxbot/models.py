@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from typing import List
 
 from hometaxbot.types import HometaxModel
 
@@ -30,7 +31,7 @@ class 납세자(HometaxModel):
     휴대전화번호: str = None
     전자메일주소: str = None
     주소: str = None
-    사업자구분: 홈택스사용자구분코드
+    사업자구분: 홈택스사용자구분코드 = None
 
     대표자주민등록번호: str = None
     법인등록번호: str = None
@@ -91,3 +92,77 @@ class 환급금조회(HometaxModel):
     최종변경일시: datetime
     귀속연월: date
     금액: Decimal
+
+
+class 세금계산서분류(Enum):
+    세금계산서 = '01'
+    수정세금계산서 = '02'
+    계산서 = '03'
+    수정계산서 = '04'
+
+
+class 세금계산서종류(Enum):
+    일반 = '01'
+    영세율 = '02'
+    위수탁 = '03'
+    수입 = '04'
+    영세율위수탁 = '05'
+    수입납부유예 = '06'
+
+
+@dataclass(kw_only=True)
+class 세금계산서(HometaxModel):
+    승인번호: str
+    작성일자: date
+    세금계산서분류: 세금계산서분류
+    세금계산서종류: 세금계산서종류
+    영수청구코드: str
+    수정코드: str = None
+    당초승인번호: str = None
+    비고: str = None
+    수입문서참조: '수입문서' = None
+
+    공급자: 납세자
+    공급자연락처: '연락처'
+    공급받는자: 납세자
+    공급받는자연락처: '연락처'
+    공급받는자연락처2: '연락처' = None
+    위수탁자: 납세자 = None
+    위수탁자연락처: '연락처' = None
+
+    결제방법코드: str
+    결제금액: Decimal
+    공급가액: Decimal
+    세액: Decimal
+    총금액: Decimal
+
+    품목: List['세금계산서품목']
+
+
+@dataclass(kw_only=True)
+class 수입문서(HometaxModel):
+    신고번호: str
+    일괄발급시작일: date
+    일괄발급종료일: date
+    총건: int
+
+
+@dataclass(kw_only=True)
+class 연락처(HometaxModel):
+    부서명: str
+    이름: str
+    전화번호: str
+    이메일: str
+
+
+@dataclass(kw_only=True)
+class 세금계산서품목(HometaxModel):
+    일련번호: int
+    공급일자: date
+    품목명: str
+    규격: str = None
+    비고: str = None
+    수량: int = None # `-` 허용. 단위는 attribute로 들어간다.
+    단가: Decimal  # 소수점 2자리까지 표현. `-` 허용
+    공급가액: Decimal  # 원단위까지. `-` 허용
+    세액: Decimal

@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List
 
 from hometaxbot.models import 전자신고결과조회
-from hometaxbot.scraper import HometaxScraper, reports
+from hometaxbot.scraper import HometaxScraper, reports, transactions
 from tests import testdata
 
 
@@ -22,3 +22,12 @@ class TestScrape(unittest.TestCase):
 
         self.assertIsNotNone(next(reports.납부내역(scraper, begin, end)).전자납부번호)
         self.assertIsNotNone(next(reports.납부내역(scraper, begin, end)).전자납부번호)
+
+    def test_scrape_데이터(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
+
+        begin = date(2024, 1, 1)
+        end = date(2024, 6, 1)
+
+        self.assertGreater(next(transactions.세금계산서(scraper, begin, end)).총금액, 0)

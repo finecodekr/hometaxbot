@@ -1,11 +1,10 @@
 import base64
-import datetime
 import hashlib
 import hmac
 import re
 import typing
 from contextlib import contextmanager, ExitStack
-from datetime import date
+from datetime import date, datetime
 from typing import List
 
 from OpenSSL import crypto
@@ -58,6 +57,14 @@ def load_cert(files: List[typing.BinaryIO], password: str) -> pypinksign.PinkSig
 def validate_cert_expiry(sign):
     if sign.valid_date()[1].date() < date.today():
         raise HometaxException('공인인증서 유효기간이 지났습니다.')
+
+
+def nts_hash_param(payload):
+    # payload를 정확히 encode하지 않아도 API가 동작함. 그래서 형식만 맞추도록 일부만 구현함
+    # 필요 시 Hometax script를 보고 정확히 해싱하여 보내도록 수정
+    second = datetime.now().second
+    encodedParam = base64.b64encode(hashlib.sha256((payload + str(second)).encode('utf-8')).hexdigest().upper().encode('utf-8')).decode('utf-8')
+    return str(second + 12) + encodedParam + str(second)
 
 
 # 홈택스 js소스에 구현된 k1~k8암호화소스

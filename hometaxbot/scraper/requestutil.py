@@ -1,4 +1,5 @@
 import random
+import re
 import time
 from xml.etree import ElementTree
 
@@ -49,7 +50,7 @@ def parse_response(response):
     """
     check_error_on_response(response)
 
-    element = ElementTree.fromstring(response.text)
+    element = ElementTree.fromstring(re.sub(' xmlns="[^"]+"', '', response.text, count=1))
     if find_text_or_none(element, 'errorCd') in ['-9402', '-9404', '-9403', '-9405'] \
             or find_text_or_none(element, 'msg') in ['-9402', '-9404', '-9403', '-9405']:
         raise Throttled('홈택스 이중 로그인 방지로 인해 인증에 실패했습니다. 다시 시도해주세요.')
@@ -86,3 +87,20 @@ class CustomHttpAdapter(requests.adapters.HTTPAdapter):
         self.poolmanager = urllib3.poolmanager.PoolManager(
             num_pools=connections, maxsize=maxsize,
             block=block, ssl_context=self.ssl_context)
+
+
+class XMLValueFinder:
+    element: ElementTree.Element
+
+    def __init__(self, element):
+        self.element = element
+
+    def get(self, path, default=None):
+        found = self.element.find(path)
+        if found is not None:
+            return found.text
+
+        return default
+
+    def sub_finders(self, path):
+        return (XMLValueFinder(e) for e in self.element.findall(path))
