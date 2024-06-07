@@ -63,11 +63,6 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
                             '</map>'):
                 yield scrape_세금계산서_detail(scraper, element.find('etan').text)
 
-            # for data in self.paginate(self.request_세금계산서_page, begin, end, invoice_type=invoice_type, 매입매출=매입매출):
-            #     time.sleep(3)
-            #     data['xml'] = ensure_xml_response(self.scrape_세금계산서_detail, data['etan'])
-            #     yield data
-
 
 def scrape_세금계산서_detail(scraper: HometaxScraper, etan):
     scraper.request_permission('teet')
@@ -276,6 +271,17 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
 
 
 def 카드매출월간집계(scraper: HometaxScraper, begin: date, end: date):
+    """
+    자료수집 시점에 대한 홈택스의 안내문구:
+        신용카드 자료는 매월 15일경에 직전월 자료까지 포함하여 제공합니다
+        현금IC카드 자료는 부가세 신고월에 직전분기 자료까지 포함하여 제공합니다
+        1~3월 매출자료 :  4월 10일경 제공      4~6월 매출자료 : 7월 10일경 제공
+        7~9월 매출자료 :  10월 10일경 제공   10~12월 매출자료 : 1월 10일경 제공
+        판매(결제)대행 매출자료는 부가가치법 제75조에 따라 매 분기 다음 달 15일까지 제출하도록 규정되어 있습니다
+        따라서, 자료수집 후 신속하게 제공할 예정입니다
+        1~3월 매출자료 :  4월 17일경 제공 예정      4~6월 매출자료 : 7월 17일경 제공 예정
+        7~9월 매출자료 :  10월 17일경 제공 예정   10~12월 매출자료 : 1월 17일경 제공 예정
+    """
     scraper.request_permission('teht')
 
     element = scraper.request_xml(
