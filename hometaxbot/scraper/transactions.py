@@ -5,7 +5,7 @@ from hometaxbot import models
 from hometaxbot.crypto import nts_hash_param
 from hometaxbot.models import 수입문서, 납세자, 연락처, 세금계산서품목
 from hometaxbot.scraper import HometaxScraper, parse_response
-from hometaxbot.scraper.requestutil import XMLValueFinder
+from hometaxbot.scraper.requestutil import XMLValueFinder, action_params
 
 invoice_type_choices = {
     '전자세금계산서': '01',
@@ -172,3 +172,105 @@ def scrape_세금계산서_detail(scraper: HometaxScraper, etan):
             세액=f.get('TotalTax/CalculatedAmount'),
         ) for f in finder.sub_finders('TaxInvoiceTradeLineItem')]
     )
+
+
+def 카드매입(scraper: HometaxScraper, begin: date, end: date):
+    scraper.request_permission('tecr')
+
+    for element in scraper.request_paginated_xml(
+            "https://tecr.hometax.go.kr/wqAction.do?" + action_params('ATECRCCA001R06', 'UTECRCB023'),
+            payload='<map id="ATECRCBA001R03">'
+                    '<sumTotaTrsAmt/>'
+                    f'<tin>{scraper.tin}</tin>'
+                    '<txprDscmNo/>'
+                    f'<trsDtRngStrt>{begin.strftime("%Y%m%d")}</trsDtRngStrt>'
+                    f'<trsDtRngEnd>{end.strftime("%Y%m%d")}</trsDtRngEnd>'
+                    '<pblClCd>all</pblClCd>'
+                    '{{pageInfoVO}}</map>'):
+
+        yield models.카드매입(
+            거래일시=element.find('aprvDt').text,
+            카드번호=element.find('busnCrdCardNoEncCntn').text,
+            승인번호=element.find('busnCrdcTrsBrkdSn').text,
+            카드사=element.find('crcmClNm').text,
+            공급가액=element.find('splCft').text,
+            부가세=element.find('vaTxamt').text,
+            봉사료=element.find('tip').text,
+            총금액=element.find('totaTrsAmt').text,
+            가맹점=납세자(
+                납세자번호=element.find('mrntTxprDscmNoEncCntn').text,
+                납세자명=element.find('mrntTxprNm').text,
+                업종코드=element.find('tfbCd').text,
+                업태=element.find('bcNm').text,
+                종목=element.find('tfbNm').text,
+            ),
+            가맹점유형=element.find('bmanClNm').text,
+            공제여부=element.find('ddcYnNm').text,
+            비고=element.find('vatDdcClNm').text,
+        )
+
+
+def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
+    scraper.request_permission('tecr')
+
+    # 현금영수증 매출
+    for element in scraper.request_paginated_xml(
+            "https://tecr.hometax.go.kr/wqAction.do?" + action_params('ATECRCBA001R03', 'UTECRCB013'),
+            payload='<map id="ATECRCBA001R03">'
+                    '<sumTotaTrsAmt/>'
+                    f'<tin>{scraper.tin}</tin>'
+                    '<txprDscmNo/>'
+                    f'<trsDtRngStrt>{begin.strftime("%Y%m%d")}</trsDtRngStrt>'
+                    f'<trsDtRngEnd>{end.strftime("%Y%m%d")}</trsDtRngEnd>'
+                    '<pblClCd>all</pblClCd>'
+                    '{{pageInfoVO}}</map>'):
+        yield models.현금영수증(
+            매출매입='매출',
+            거래일시=element.find('trsDtm').text,
+            거래구분=element.find('cshptTrsTypeNm').text,
+            공급가액=element.find('splCft').text,
+            부가세=element.find('vaTxamt').text,
+            봉사료=element.find('tip').text,
+            총금액=element.find('totaTrsAmt').text,
+            승인번호=element.find('aprvNo').text,
+            발급수단=element.find('spstCnfrClNm').text,
+            승인구분=element.find('trsClNm').text,
+            매입자명=element.find('rcprTxprNm').text,
+            가맹점=scraper.selected_trader,
+        )
+
+    # 현금영수증 매입
+    for element in scraper.request_paginated_xml(
+            "https://tecr.hometax.go.kr/wqAction.do?" + action_params('ATECRCBA001R02', 'UTECRCB005'),
+            payload=f'<map id="ATECRCBA001R02">'
+                    f'<tin>{scraper.tin}</tin>'
+                    f'<spjbTrsYn>all</spjbTrsYn>'
+                    f'<pubcUserNo>all</pubcUserNo>'
+                    f'<spstCnfrId>all</spstCnfrId>'
+                    f'<sumTotaTrsAmt/>'
+                    f'<trsDtRngStrt>{begin.strftime("%Y%m%d")}</trsDtRngStrt>'
+                    f'<trsDtRngEnd>{end.strftime("%Y%m%d")}</trsDtRngEnd>'
+                    f'<txprDscmNo>{scraper.selected_trader.납세자번호}</txprDscmNo>'
+                    '{{pageInfoVO}}</map>'):
+        finder = XMLValueFinder(element)
+        yield models.현금영수증(
+            매출매입='매입',
+            거래일시=element.find('trsDtTime').text,
+            거래구분=finder.get('cshptTrsTypeNm'),
+            공급가액=element.find('splCft').text,
+            부가세=element.find('vaTxamt').text,
+            봉사료=element.find('tip').text,
+            총금액=element.find('totaTrsAmt').text,
+            승인번호=element.find('aprvNo').text,
+            발급수단=element.find('spstCnfrClNm').text,
+            승인구분=element.find('trsClNm').text,
+            매입자명=element.find('rcprTxprNm').text,
+            가맹점=납세자(
+                납세자번호=element.find('mrntTxprDscmNoEncCntn').text,
+                납세자명=element.find('mrntTxprNm').text,
+                업종코드=element.find('tfbCd').text,
+                업태=finder.get('tfbNm'),
+                종목=finder.get('itmNm'),
+            ),
+            공제여부=finder.get('prhTxamtDdcClNm') == '공제' or finder.get('prhTxamtDdcYn') == 'Y',
+        )

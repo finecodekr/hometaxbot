@@ -28,6 +28,14 @@ class TestScrape(unittest.TestCase):
         scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
 
         begin = date(2024, 1, 1)
-        end = date(2024, 6, 1)
+        end = date(2024, 3, 1)
 
         self.assertGreater(next(transactions.세금계산서(scraper, begin, end)).총금액, 0)
+        self.assertGreater(next(transactions.카드매입(scraper, begin, end)).총금액, 0)
+
+    def test_scrape_현금영수증(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
+
+        self.assertGreater(next(transactions.현금영수증(scraper, date(2023, 11, 1), date(2023, 12, 31))).총금액, 0)
+        self.assertGreater(next(transactions.현금영수증(scraper, date(2024, 1, 1), date(2024, 3, 1))).총금액, 0)

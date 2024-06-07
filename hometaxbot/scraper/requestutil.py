@@ -11,6 +11,10 @@ from requests import Response
 from hometaxbot import Throttled, HometaxException
 
 
+def action_params(action, screen):
+    return f"actionId={action}&screenId={screen}&popupYn=false&realScreenId="
+
+
 def nts_generate_random_string(length):
     """
     홈택스 스크립트에 있는 랜덤 스트링 제너레이션 포팅

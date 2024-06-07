@@ -166,3 +166,37 @@ class 세금계산서품목(HometaxModel):
     단가: Decimal  # 소수점 2자리까지 표현. `-` 허용
     공급가액: Decimal  # 원단위까지. `-` 허용
     세액: Decimal
+
+
+@dataclass(kw_only=True)
+class 카드매입(HometaxModel):
+    거래일시: datetime
+    카드번호: str
+    승인번호: str
+    카드사: str
+    공급가액: Decimal
+    부가세: Decimal
+    봉사료: Decimal
+    총금액: Decimal
+    가맹점: 납세자
+    가맹점유형: str
+    공제여부: str
+    비고: str
+
+
+@dataclass(kw_only=True)
+class 현금영수증(HometaxModel):
+    거래일시: datetime
+    매출매입: str
+    승인번호: str
+    승인구분: str
+    발행구분: str = None
+    발급수단: str
+    거래구분: str = None
+    공급가액: Decimal
+    부가세: Decimal
+    봉사료: Decimal
+    총금액: Decimal
+    매입자명: str = None
+    가맹점: 납세자
+    공제여부: bool = None
