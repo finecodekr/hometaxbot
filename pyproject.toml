@@ -11,7 +11,7 @@ dynamic = ["version", "description"]
 dependencies = [
     "pypinksign",
     "pycryptodome",
-    "pyOpenSSL",
+    "pyOpenSSL==23.2.0",
     "python-dateutil",
     "pyyaml",
     "certifi",

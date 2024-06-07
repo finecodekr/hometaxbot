@@ -24,4 +24,4 @@ def random_second():
     return random.randrange(30, 60)
 
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
