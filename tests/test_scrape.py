@@ -32,6 +32,7 @@ class TestScrape(unittest.TestCase):
 
         self.assertGreater(next(transactions.세금계산서(scraper, begin, end)).총금액, 0)
         self.assertGreater(next(transactions.카드매입(scraper, begin, end)).총금액, 0)
+        self.assertGreater(next(transactions.카드매출월간집계(scraper, date(2023, 1, 1), date(2023, 3, 1))).합계금액, 0)
 
     def test_scrape_현금영수증(self):
         scraper = HometaxScraper()

@@ -108,3 +108,7 @@ class XMLValueFinder:
 
     def sub_finders(self, path):
         return (XMLValueFinder(e) for e in self.element.findall(path))
+
+
+def get_quarter_by_date(date):
+    return int((date.month - 1) / 3 + 1)

@@ -200,3 +200,12 @@ class 현금영수증(HometaxModel):
     매입자명: str = None
     가맹점: 납세자
     공제여부: bool = None
+
+
+@dataclass(kw_only=True)
+class 카드매출월간집계(HometaxModel):
+    거래연월: date
+    거래건수: int
+    합계금액: Decimal
+    매입처명: str
+

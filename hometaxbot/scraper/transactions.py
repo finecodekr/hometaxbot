@@ -5,7 +5,7 @@ from hometaxbot import models
 from hometaxbot.crypto import nts_hash_param
 from hometaxbot.models import 수입문서, 납세자, 연락처, 세금계산서품목
 from hometaxbot.scraper import HometaxScraper, parse_response
-from hometaxbot.scraper.requestutil import XMLValueFinder, action_params
+from hometaxbot.scraper.requestutil import XMLValueFinder, action_params, get_quarter_by_date
 
 invoice_type_choices = {
     '전자세금계산서': '01',
@@ -94,7 +94,6 @@ def scrape_세금계산서_detail(scraper: HometaxScraper, etan):
                                     f"d={nts_hash_param(downloadParam)}",
                                headers={'Content-Type': "application/x-www-form-urlencoded"})
     res.encoding = 'UTF-8'
-    print(res.text)
     finder = XMLValueFinder(parse_response(res))
 
     return models.세금계산서(
@@ -274,3 +273,26 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
             ),
             공제여부=finder.get('prhTxamtDdcClNm') == '공제' or finder.get('prhTxamtDdcYn') == 'Y',
         )
+
+
+def 카드매출월간집계(scraper: HometaxScraper, begin: date, end: date):
+    scraper.request_permission('teht')
+
+    element = scraper.request_xml(
+        'https://teht.hometax.go.kr/wqAction.do?' + action_params('ATESFAAA014R02', 'UTESFABG35'),
+        payload=f'<map id="ATESFAAA014R02">'
+                f'<stlYr>{begin.year}</stlYr>'
+                f'<qrtFrom>{get_quarter_by_date(begin)}</qrtFrom>'
+                f'<qrtTo>{get_quarter_by_date(end)}</qrtTo>'
+                f'<bsno>{scraper.selected_trader.납세자번호}</bsno>'
+                f'</map>')
+
+    for child in element.findall('.//list/map'):
+        finder = XMLValueFinder(child)
+        yield models.카드매출월간집계(
+            거래연월=finder.get('stlYm') + '01',  # 연월 값에 01을 붙여서 날짜로 만듦
+            거래건수=finder.get('sumStlScnt'),
+            합계금액=finder.get('sumTipExclAmt'),
+            매입처명=finder.get('txprNm'),
+        )
+
