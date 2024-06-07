@@ -6,6 +6,8 @@
 pip install hometaxbot
 ```
 
+**주의**: 패키지 호환성 문제로 pyOpenSSL의 버전을 23.2.0으로 고정해놓고 있습니다. 추후 관련 패키지들이 업데이트되면 최신 패키지로 업데이트할 예정입니다.
+
 ## 사용법
 ```python
 from hometaxbot.scraper import HometaxScraper, reports
