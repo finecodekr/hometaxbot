@@ -59,7 +59,8 @@ class HometaxScraper:
             validate_cert_expiry(sign)
 
         if len(cert_paths) == 1:
-            p = subprocess.Popen(['openssl', 'pkcs12', '-info', '-in', cert_paths[0], '-nodes', '-nocerts', '-passin',
+            p = subprocess.Popen(['openssl', 'pkcs12', '-info', '-provider', 'legacy', '-provider', 'default',
+                                  '-in', cert_paths[0], '-nodes', '-nocerts', '-passin',
                                   f'pass:{prikey_password}'], stdout=subprocess.PIPE)
             prikey_dumped, _ = p.communicate()
             ID_KISA_NPKI_RAND_NUM = '1.2.410.200004.10.1.1.3'
@@ -116,7 +117,8 @@ class HometaxScraper:
             sign = load_cert(files, prikey_password)
 
         if len(cert_paths) == 1:
-            p = subprocess.Popen(['openssl', 'pkcs12', '-info', '-in', cert_paths[0], '-nodes', '-nocerts', '-passin',
+            p = subprocess.Popen(['openssl', 'pkcs12', '-info', '-provider', 'legacy', '-provider', 'default',
+                                  '-in', cert_paths[0], '-nodes', '-nocerts', '-passin',
                                   f'pass:{prikey_password}'], stdout=subprocess.PIPE)
             prikey_dumped, _ = p.communicate()
             ID_KISA_NPKI_RAND_NUM = '1.2.410.200004.10.1.1.3'
