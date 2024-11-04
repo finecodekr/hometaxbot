@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 import re
@@ -48,11 +49,18 @@ class HometaxScraper:
         홈택스 공인인증서 로그인
         """
         nts = random_second()
+        self.session.post('https://hometax.go.kr/wqAction.do?actionId=ATXPPCBA001R17&screenId=index_pp&popupYn=false&realScreenId=',
+                          data='{"cncClCd":"01","srvcClCd":"01","menuHtrnId":"100900","ntplAthYn":"N","ntplBmanAthYn":"","crpBmanAthYn":"","txaaYn":"","cshptMrntYn":"","pubcUserNo":"","dprtUserYn":"","athCd":"N","menuId":"","prevMenuId":"","menuTtl":""}<nts<nts>nts>59h3OdIFTyGfSN5JWA5ycXWy2NySYP0nOT5DAy4zN848')
+        self.request_permission(screen_id='UTXPPABA01')
+        self.session.post('https://hometax.go.kr/jsp/magicNX/getMLSession.jsp', data='')
+        self.session.post('https://hometax.go.kr/wqAction.do?actionId=ATXPPABA001A25&screenId=UTXPPABA01&popupYn=false&realScreenId=', data='{"ipUData":""}<nts<nts>nts>60sSHhJ0npixTDedljXKTgyCTViu40xfLWs6aimQmq8A49')
+        self.session.post('https://hometax.go.kr/wqAction.do?actionId=ATXPPCBA001R020&screenId=UTXPPABA01&popupYn=false', json={"scrnId": "0900000000", "pageInfoVO": {"totalCount" : "0", "pageSize" : "10", "pageNum" : "1"} })
+
         res = self.session.post("https://www.hometax.go.kr/wqAction.do?actionId=ATXPPZXA001R01&screenId=UTXPPABA01",
-                                data=f"<map></map><nts<nts>nts>{nts}dGGBLG2rRWBeuYMviAZyJjAphI9Y3wCmWhg1y84EU{nts - 11}")
+                                data=f"{{}}{nts}dGGBLG2rRWBeuYMviAZyJjAphI9Y3wCmWhg1y84EU{nts - 11}")
         if res.status_code == HTTPStatus.NOT_FOUND:
             raise HometaxException('홈택스 서버에 접속할 수 없습니다. 잠시 후 다시 시도해주세요.')
-        pckEncSsn = parse_response(res).find('.//pkcEncSsn').text
+        pckEncSsn = res.json()['pkcEncSsn']
 
         with open_files(cert_paths) as files:
             sign = load_cert(files, prikey_password)
@@ -156,21 +164,20 @@ class HometaxScraper:
     def fetch_user_and_traders(self):
         self.deselect_trader()
 
-        res = self.session.post('https://www.hometax.go.kr/permission.do',
+        res_json = self.session.post('https://www.hometax.go.kr/permission.do',
                                 params={"screenId": "index"},
                                 data='<map id="postParam"><popupYn>false</popupYn></map>'.encode('utf-8'),
-                                headers={'Content-Type': "application/xml; charset=UTF-8"})
-        pubcUserNo = parse_response(res).find('.//pubcUserNo').text
+                                headers={'Content-Type': "application/xml; charset=UTF-8"}).json()
+        pubcUserNo = res_json['resultMsg']['sessionMap']['pubcUserNo']
         nts = random_second()
-        res_xml = self.request_action_xml(
+        res_json = self.request_action(
             action_id='ATXPPAAA001R22',
             screen_id='UTXPPAAA10',
-            payload=f'<map id="ATXPPAAA001R22"><pubcUserNo>{pubcUserNo}</pubcUserNo><userType>N</userType><cncClCd/>'
-                    f'<arsPswdAltYn/><jntCnt/></map><nts<nts>nts>{nts}BfI2b32na00UC4Gq5TCUjAlsw7uURISbBokVb2ShBc0{nts - 11}')
+            payload=json.dumps({"pubcUserNo": pubcUserNo, "userType": "B", "cncClCd": "", "arsPswdAltYn": "", "jntCnt": ""})
+                    + f'<nts<nts>nts>{nts}BfI2b32na00UC4Gq5TCUjAlsw7uURISbBokVb2ShBc0{nts - 11}').json()
 
-        self.user_info = model_from_hometax_xml(홈택스사용자, res_xml.find('.//map[@id="pubcUserJnngInfrAdmDVO"]'))
-        self.user_tin = res_xml.find('.//map[@id="sessionMap"]/tin').text
-
+        self.user_info = model_from_hometax_json(홈택스사용자, res_json['pubcUserJnngInfrAdmDVO'])
+        # self.user_tin = res_json.find('.//map[@id="sessionMap"]/tin').text
         if self.user_info.사용자구분 == 홈택스사용자구분코드.개인:
             self.개인사업자_list = self.fetch_traders()
         else:
@@ -178,21 +185,21 @@ class HometaxScraper:
 
     def fetch_traders(self):
         nts = random_second()
-        res_xml = self.request_action_xml(
+        res_json = self.request_action(
             action_id='ATXPPAAA003R01',
             screen_id='UTXPPAAA24',
-            payload=f'<map id="ATXPPAAA003R01"/>'
-                    f'<nts<nts>nts>{nts}NJ3QcOLdNy8YZIojAqeUQiS6YP653gruVRI9JbNVw{nts - 11}')
-        elements = res_xml.find('.//list[@id="bmanBscInfrInqrDVOList"]')
+            payload=f'{{}}'
+                    f'<nts<nts>nts>{nts}NJ3QcOLdNy8YZIojAqeUQiS6YP653gruVRI9JbNVw{nts - 11}').json()
+        elements = res_json.get('bmanBscInfrInqrDVOList')
 
         if elements is None:
-            if res_xml.find('.//msg') is None or '사업자 변경대상이 아님' not in res_xml.find('.//msg').text:
-                logging.error(ElementTree.tostring(res_xml, encoding='unicode'), stack_info=True)
+            if res_json.find('.//msg') is None or '사업자 변경대상이 아님' not in res_json.find('.//msg').text:
+                logging.error(ElementTree.tostring(res_json, encoding='unicode'), stack_info=True)
             return []
 
         return [{
-            '사업자등록번호': element.find('txprDscmNoEncCntn').text,
-            'tin': element.find('tin').text,
+            '사업자등록번호': element['txprDscmNoEncCntn'],
+            'tin': element['tin'],
         } for element in elements]
 
     def login_with_cookies(self, cookies):
@@ -239,9 +246,9 @@ class HometaxScraper:
 
         nts = random_second()
         self.request_permission(screen_id='UTXPPAAA24')
-        self.request_action(action_id='ATXPPAAA003A01',
+        res = self.request_action(action_id='ATXPPAAA003A01',
                             screen_id='UTXPPAAA24',
-                            payload=f'<map id="ATXPPAAA003A01"><tin>{found["tin"]}</tin></map>'
+                            payload=json.dumps({'tin': found['tin']}) +
                                     f'<nts<nts>nts>{nts}YOp3ShJZFIhX5xqYRB0ELzlkd0EehhPVkHF6mjLJk{nts - 11}')
         self.tin = None
         self.request_permission(screen_id='index')
@@ -270,58 +277,54 @@ class HometaxScraper:
         nts = random_second()
         res = self.session.post(
             "https://teht.hometax.go.kr/wqAction.do?actionId=ATTABZAA001R17&screenId=UTEABGAA21&popupYn=false&realScreenId=",
-            data=f'<map id="ATTABZAA001R17">'
-                 f'<tin>{self.tin}</tin>'
-                 f'<txprClsfCd>02</txprClsfCd>'
-                 f'<txprDscmNo/><txprDscmNoClCd/><txprDscmDt/>'
-                 f'<searchOrder>02/01</searchOrder>'
-                 f'<outDes>bmanBscInfrInqrDVO</outDes>'
-                 f'<txprNm/><crpTin/><mntgTxprIcldYn/><resnoAltHstrInqrYn/><resnoAltHstrInqrBaseDtm/>'
-                 f'</map><nts<nts>nts>{nts}74JxrC2hphMsLLv7deT0nri5fT4KO9iHHdSTK9SATM{nts - 11}',
-            headers={'Content-Type': "application/xml; charset=UTF-8"})
+            data=json.dumps({"tin": self.tin, "txprClsfCd": '02', "txprDscmNo": "", "txprDscmNoClCd": "",
+                             "txprDscmDt": "", "searchOrder": "02/01", "outDes": "bmanBscInfrInqrDVO", "txprNm": "",
+                             "crpTin": "", "mntgTxprIcldYn": "", "resnoAltHstrInqrYn": "",
+                             "resnoAltHstrInqrBaseDtm": "", "sameBmanInqrYn": "N", "rpnBmanRetrYn": "N"}).replace(' ', '')
+                 + f'<nts<nts>nts>{nts}rjNjDYrX04H1ZeoLR7s39xGAggSKKn7ZTGjjfyMK0{nts - 11}',
+            headers={'Content-Type': "application/json"})
 
-        element = parse_response(res).find('.//map[@id="bmanBscInfrInqrDVO"]')
+        element = res.json()['bmanBscInfrInqrDVO']
         if element is None:
             logging.error(f'trader_info none element: {res.text}', extra=dict(text=res.text), stack_info=True)
             raise Exception('사업자 정보를 불러오지 못했습니다. 다시 시도해주세요.')
 
         self.request_permission(screen_id='UTXPPBAA69')
         nts = random_second()
+        # 마이홈택스 - 기타 세무정보 - 사업자등록사항 및 담당자 안내
         res = self.session.post(
-            "https://hometax.go.kr/wqAction.do?actionId=ATXPPBAA001R36&screenId=UTXPPBAA69&popupYn=false&realScreenId=",
-            data=f'<map id="ATXPPBAA001R36">'
-                 '<survTtl/>'
-                 f'<tin>{self.tin}</tin>'
-                 f'</map><nts<nts>nts>{nts}74JxrC2hphMsLLv7deT0nri5fT4KO9iHHdSTK9SATM{nts - 11}',
+            "https://hometax.go.kr/wqAction.do?actionId=ATXPPBAA001R36&screenId=UTXPPBAA70&popupYn=true&realScreenId=",
+            data=json.dumps({"rprsTin": "", "tin": self.tin})
+                 + f'</map><nts<nts>nts>{nts}74JxrC2hphMsLLv7deT0nri5fT4KO9iHHdSTK9SATM{nts - 11}',
             headers={'Content-Type': "application/xml; charset=UTF-8"})
 
-        detail = parse_response(res).findall('.//list[@id="bmanBscInfrInqrDVOList"]/map')
+        detail = res.json().get('bmanBscInfrInqrDVOList')
         if detail is None:
             raise Throttled('사업자 등록사항을 불러오지 못했습니다. 다시 시도해주세요.')
 
-        사업자상태 = element.find('txprStatNm').text if element.find('txprStatNm') is not None else None
+        사업자상태 = element.get('txprStatNm')
         사업자등록사항 = next(
-            (d for d in detail if d.find('txprDscmNoEncCntn').text.replace('-', '') == element.find('txprDscmNoEncCntn').text),
+            (d for d in detail if d['txprDscmNoEncCntn'].replace('-', '') == element['txprDscmNoEncCntn']),
             None)
 
         return 납세자(
-            납세자번호=element.find('txprDscmNoEncCntn').text,
-            사업자구분=홈택스사용자구분코드[element.find('txprDclsNm').text],
-            전자메일주소=element.find('pfbEml').text,
-            휴대전화번호=element.find('pfbTelno').text,
-            주소=element.find('roadAdr').text,
-            납세자명=element.find('txprNm').text if element.find('txprNm').text else element.find('rprsTxprNm').text,
-            대표자주민등록번호=element.find('rprsResno').text.replace('-', ''),
-            법인등록번호=element.find('crpno').text if element.find('crpno') is not None else None,
-            대표자명=element.find('rprsTxprNm').text,
-            업종코드=find_first_value(element, 'tfbCd', 'xmtxOrgMtfbCd', default='ZZZZZZ'),
-            업태=find_first_value(element, 'bcNm', 'xmtxOrgMbcNm') if 사업자상태 != '폐업' else None,
-            종목=find_first_value(element, 'itmNm', 'xmtxOrgMitmNm') if 사업자상태 != '폐업' else None,
-            개업일=datetime.strptime(element.find('txprDscmDt').text, '%Y%m%d').date(),
-            폐업일=element.find('cfbDt') and datetime.strptime(element.find('cfbDt').text, '%Y%m%d').date(),
-            사업장소재지=element.find('rprsRoadAdr').text,
-            사업장전화번호=element.find('rprsHmTelno').text,
-            간이과세여부='간이과세자' in 사업자등록사항.find('bmanClNm').text if 사업자등록사항 is not None else False,
+            납세자번호=element['txprDscmNoEncCntn'],
+            사업자구분=홈택스사용자구분코드[element['txprDclsNm']],
+            전자메일주소=element['pfbEml'],
+            휴대전화번호=element['pfbTelno'],
+            주소=element['roadAdr'],
+            납세자명=element['txprNm'] if element['txprNm'] else element['rprsTxprNm'],
+            대표자주민등록번호=element['rprsResno'].replace('-', ''),
+            법인등록번호=element.get('crpno'),
+            대표자명=element['rprsTxprNm'],
+            업종코드=element.get('tfbCd', element.get('xmtxOrgMtfbCd', 'ZZZZZZ')),
+            업태=element.get('bcNm', element.get('xmtxOrgMbcNm')) if 사업자상태 != '폐업' else None,
+            종목=element.get('itmNm', element.get('xmtxOrgMitmNm')) if 사업자상태 != '폐업' else None,
+            개업일=datetime.strptime(element['txprDscmDt'], '%Y%m%d').date(),
+            폐업일=element.get('cfbDt') and datetime.strptime(element['cfbDt'], '%Y%m%d').date(),
+            사업장소재지=element['rprsRoadAdr'],
+            사업장전화번호=element['rprsHmTelno'],
+            간이과세여부='간이과세자' in 사업자등록사항['bmanClNm'] if 사업자등록사항 is not None else False,
         )
 
     def request_permission(self, subdomain=None, screen_id=None):
@@ -346,33 +349,22 @@ class HometaxScraper:
         else:
             base_url += f'{subdomain}.hometax.go.kr'
 
-        response = self.session.post(f'{base_url}/permission.do',
-                          data='<map id="postParam"><popupYn>false</popupYn></map>'.encode('utf-8'),
-                          params={"screenId": screen_id},
-                          headers={'Content-Type': "application/xml; charset=UTF-8"}, timeout=20)
-        if '<errorMsg>login</errorMsg>' in response.text:
-            response = self.session.get("https://hometax.go.kr/token.do",
-                                        params={
-                                            "query": f'_{nts_generate_random_string(20)}',
-                                            "postfix": datetime.today().strftime('%Y_%m_%d')
-                                        },
-                                        headers={'Content-Type': "application/xml; charset=UTF-8"})
-            check_error_on_response(response)
-            ssoToken = re.search(r'nts_reqPortalCallback\("(.*)"\)', response.text).group(1)
+        response = self.session.post(f'{base_url}/permission.do?screenId={screen_id}', json={}, timeout=20)
 
-            response = self.session.post(f'{base_url}/permission.do',
-                                         data=('<map id="postParam">' \
-                                               f'{ssoToken}' \
-                                               '<popupYn>false</popupYn>' \
-                                               '</map>'.encode('utf-8')),
-                                         params={"screenId": screen_id, "domain": "hometax.go.kr"},
-                                         headers={'Content-Type': "application/xml; charset=UTF-8"})
-            if '<errorMsg>login</errorMsg>' in response.text:
-                raise Throttled(60, '홈택스 로그인 권한 획득에 실패했습니다. 다시 시도해주세요.')
+        root = response.json()
+        if subdomain and ('sessionMap' not in root['resultMsg']):
+            token = self.session.post(f'https://hometax.go.kr/token.do?query=_{nts_generate_random_string(20)}', json={}).json()
+            root = self.session.post(f'{base_url}/permission.do?screenId={screen_id}&domain=hometax.go.kr',
+                                     json=token | {'popupYn': False,},
+                                     timeout=20).json()
 
-        root = parse_response(response)
-        self.tin = root.find('.//tin').text
-        self.pubcUserNo = root.find('.//pubcUserNo').text
+        if 'sessionMap' in root['resultMsg']:
+            self.tin = root['resultMsg']['sessionMap']['tin']
+            self.pubcUserNo = root['resultMsg']['sessionMap']['pubcUserNo']
+            self.txprClsfCd = root['resultMsg']['sessionMap']['txprClsfCd']  # TODO 이 값을 요청할 때 쓰는 게 맞는지 확인 필요.
+        elif subdomain:
+            raise Throttled(60, '홈택스 로그인 권한 획득에 실패했습니다. 다시 시도해주세요.')
+
         self.subdomain = subdomain
 
     def request_xml(self, url, payload):
@@ -415,6 +407,11 @@ with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8
 def model_from_hometax_xml(model_class, element: Element):
     return model_class(**{HOMETAX_XML_FIELDS[model_class.__name__][child.tag]: child.text
                           for child in element if HOMETAX_XML_FIELDS[model_class.__name__].get(child.tag)})
+
+
+def model_from_hometax_json(model_class, data: dict):
+    return model_class(**{HOMETAX_XML_FIELDS[model_class.__name__][key]: value
+                          for key, value in data.items() if HOMETAX_XML_FIELDS[model_class.__name__].get(key)})
 
 
 def find_first_value(element, *names, default=''):
