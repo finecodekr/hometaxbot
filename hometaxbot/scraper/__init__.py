@@ -244,8 +244,10 @@ class HometaxScraper:
             data = self.request_action_json(action_id, screen_id,
                                             json | {'pageInfoVo': pageInfoVO, 'excelPageInfoVo': pageInfoVO},
                                             real_screen_id, subdomain)
-
-            yield from data['etxivIsnBrkdTermDVOList']
+            try:
+                yield from data[next(k for k in data if k.endswith('DVOList'))]
+            except StopIteration:
+                return
 
             if data['pageInfoVO']['totalCount'] is None:
                 raise Exception(f'홈택스 응답 오류: {data}')

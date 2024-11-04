@@ -193,36 +193,56 @@ def scrape_세금계산서_detail(scraper: HometaxScraper, etan):
 def 카드매입(scraper: HometaxScraper, begin: date, end: date):
     scraper.request_permission('tecr')
 
-    for element in scraper.request_paginated_xml(
-            "https://tecr.hometax.go.kr/wqAction.do?" + action_params('ATECRCCA001R06', 'UTECRCB023'),
-            payload='<map id="ATECRCBA001R03">'
-                    '<sumTotaTrsAmt/>'
-                    f'<tin>{scraper.tin}</tin>'
-                    '<txprDscmNo/>'
-                    f'<trsDtRngStrt>{begin.strftime("%Y%m%d")}</trsDtRngStrt>'
-                    f'<trsDtRngEnd>{end.strftime("%Y%m%d")}</trsDtRngEnd>'
-                    '<pblClCd>all</pblClCd>'
-                    '{{pageInfoVO}}</map>'):
+    for element in scraper.paginate_action_json(
+            'ATECRCCA001R06', 'UTECRCB023',
+            json={
+                "busnCrdcDwldFleStatCd": "",
+                "busnCrdcTrsBrkdPrhYr": "",
+                "dwldCnclFg": "",
+                "dwldFleNm": "",
+                "dwldTrsBrkdScnt": "",
+                "fleTp": "",
+                "gdncMsgCntn": "",
+                "ntplBmanAthYn": "",
+                "prhQrt": "",
+                "prhQrtEdInq": "",
+                "prhQrtStInq": "",
+                "prhQrtStrtYm": "",
+                "prhTxamtDdcYn": "all",
+                "reqCd": "",
+                "resultCd": "",
+                "rqsDt": "",
+                "rqstTxprDscmNo": "",
+                "sumTotaTrsAmt": "",
+                "tin": scraper.tin,
+                "trsDtRngEnd": end.strftime("%Y%m%d"),
+                "trsDtRngStrt": begin.strftime("%Y%m%d"),
+                "txprDclsCd": "250",
+                "upldFleNm": "",
+                "upldPsbYn": "",
+                "yearInq": "",
+            },
+            subdomain='tecr'):
 
         yield models.카드매입(
-            거래일시=element.find('aprvDt').text,
-            카드번호=element.find('busnCrdCardNoEncCntn').text,
-            승인번호=element.find('busnCrdcTrsBrkdSn').text,
-            카드사=element.find('crcmClNm').text,
-            공급가액=element.find('splCft').text,
-            부가세=element.find('vaTxamt').text,
-            봉사료=element.find('tip').text,
-            총금액=element.find('totaTrsAmt').text,
+            거래일시=element['aprvDt'],
+            카드번호=element['busnCrdCardNoEncCntn'],
+            승인번호=element['busnCrdcTrsBrkdSn'],
+            카드사=element['crcmClNm'],
+            공급가액=element['splCft'],
+            부가세=element['vaTxamt'],
+            봉사료=element['tip'],
+            총금액=element['totaTrsAmt'],
             가맹점=납세자(
-                납세자번호=element.find('mrntTxprDscmNoEncCntn').text,
-                납세자명=element.find('mrntTxprNm').text,
-                업종코드=element.find('tfbCd').text,
-                업태=element.find('bcNm').text,
-                종목=element.find('tfbNm').text,
+                납세자번호=element['mrntTxprDscmNoEncCntn'],
+                납세자명=element['mrntTxprNm'],
+                업종코드=element['tfbCd'],
+                업태=element['bcNm'],
+                종목=element['tfbNm'],
             ),
-            가맹점유형=element.find('bmanClNm').text,
-            공제여부=element.find('ddcYnNm').text,
-            비고=element.find('vatDdcClNm').text,
+            가맹점유형=element['bmanClNm'],
+            공제여부=element['ddcYnNm'],
+            비고=element['vatDdcClNm'],
         )
 
 
@@ -230,65 +250,79 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
     scraper.request_permission('tecr')
 
     # 현금영수증 매출
-    for element in scraper.request_paginated_xml(
-            "https://tecr.hometax.go.kr/wqAction.do?" + action_params('ATECRCBA001R03', 'UTECRCB013'),
-            payload='<map id="ATECRCBA001R03">'
-                    '<sumTotaTrsAmt/>'
-                    f'<tin>{scraper.tin}</tin>'
-                    '<txprDscmNo/>'
-                    f'<trsDtRngStrt>{begin.strftime("%Y%m%d")}</trsDtRngStrt>'
-                    f'<trsDtRngEnd>{end.strftime("%Y%m%d")}</trsDtRngEnd>'
-                    '<pblClCd>all</pblClCd>'
-                    '{{pageInfoVO}}</map>'):
+    for element in scraper.paginate_action_json(
+            'ATECRCBA001R03', 'UTECRCB013',
+            json={
+                "dprtUserYn": "N",
+                "fleTp": "",
+                "mrntTxprDscmNoEncCntn": "",
+                "pubcUserNo": "all",
+                "reqCd": "",
+                "spjbTrsYn": "all",
+                "spstCnfrId": "all",
+                "sumTotaTrsAmt": "",
+                "tin": scraper.tin,
+                "trsDtRngEnd": end.strftime("%Y%m%d"),
+                "trsDtRngStrt": begin.strftime("%Y%m%d"),
+                "txprDscmNo": scraper.selected_trader.납세자번호,
+                "totalCount": "0",
+                "sumSplCft": "0",
+            }, subdomain='tecr'):
         yield models.현금영수증(
             매출매입='매출',
-            거래일시=element.find('trsDtm').text,
-            거래구분=element.find('cshptTrsTypeNm').text,
-            공급가액=element.find('splCft').text,
-            부가세=element.find('vaTxamt').text,
-            봉사료=element.find('tip').text,
-            총금액=element.find('totaTrsAmt').text,
-            승인번호=element.find('aprvNo').text,
-            발급수단=element.find('spstCnfrClNm').text,
-            승인구분=element.find('trsClNm').text,
-            매입자명=element.find('rcprTxprNm').text,
+            거래일시=element['trsDtm'],
+            거래구분=element['cshptTrsTypeNm'],
+            공급가액=element['splCft'],
+            부가세=element['vaTxamt'],
+            봉사료=element['tip'],
+            총금액=element['totaTrsAmt'],
+            승인번호=element['aprvNo'],
+            발급수단=element['spstCnfrClNm'],
+            승인구분=element['trsClNm'],
+            매입자명=element['rcprTxprNm'],
             가맹점=scraper.selected_trader,
         )
 
     # 현금영수증 매입
-    for element in scraper.request_paginated_xml(
-            "https://tecr.hometax.go.kr/wqAction.do?" + action_params('ATECRCBA001R02', 'UTECRCB005'),
-            payload=f'<map id="ATECRCBA001R02">'
-                    f'<tin>{scraper.tin}</tin>'
-                    f'<spjbTrsYn>all</spjbTrsYn>'
-                    f'<pubcUserNo>all</pubcUserNo>'
-                    f'<spstCnfrId>all</spstCnfrId>'
-                    f'<sumTotaTrsAmt/>'
-                    f'<trsDtRngStrt>{begin.strftime("%Y%m%d")}</trsDtRngStrt>'
-                    f'<trsDtRngEnd>{end.strftime("%Y%m%d")}</trsDtRngEnd>'
-                    f'<txprDscmNo>{scraper.selected_trader.납세자번호}</txprDscmNo>'
-                    '{{pageInfoVO}}</map>'):
+    for element in scraper.paginate_action_json(
+            'ATECRCBA001R02', 'UTECRCB005',
+            json={
+                "dprtUserYn": "N",
+                "fleTp": "",
+                "mrntTxprDscmNoEncCntn": "",
+                "pubcUserNo": "all",
+                "reqCd": "",
+                "spjbTrsYn": "all",
+                "spstCnfrId": "all",
+                "sumTotaTrsAmt": "",
+                "tin": scraper.tin,
+                "trsDtRngEnd": end.strftime("%Y%m%d"),
+                "trsDtRngStrt": begin.strftime("%Y%m%d"),
+                "txprDscmNo": scraper.selected_trader.납세자번호,
+                "totalCount": "0",
+                "sumSplCft": "0",
+            }, subdomain='tecr'):
         finder = XMLValueFinder(element)
         yield models.현금영수증(
             매출매입='매입',
-            거래일시=element.find('trsDtTime').text,
-            거래구분=finder.get('cshptTrsTypeNm'),
-            공급가액=element.find('splCft').text,
-            부가세=element.find('vaTxamt').text,
-            봉사료=element.find('tip').text,
-            총금액=element.find('totaTrsAmt').text,
-            승인번호=element.find('aprvNo').text,
-            발급수단=element.find('spstCnfrClNm').text,
-            승인구분=element.find('trsClNm').text,
-            매입자명=element.find('rcprTxprNm').text,
+            거래일시=element['trsDtTime'],
+            거래구분=element['cshptTrsTypeNm'],
+            공급가액=element['splCft'],
+            부가세=element['vaTxamt'],
+            봉사료=element['tip'],
+            총금액=element['totaTrsAmt'],
+            승인번호=element['aprvNo'],
+            발급수단=element['spstCnfrClNm'],
+            승인구분=element['trsClNm'],
+            매입자명=element['rcprTxprNm'],
             가맹점=납세자(
-                납세자번호=element.find('mrntTxprDscmNoEncCntn').text,
-                납세자명=element.find('mrntTxprNm').text,
-                업종코드=element.find('tfbCd').text,
-                업태=finder.get('tfbNm'),
-                종목=finder.get('itmNm'),
+                납세자번호=element['mrntTxprDscmNoEncCntn'],
+                납세자명=element['mrntTxprNm'],
+                업종코드=element['tfbCd'],
+                업태=element['tfbNm'],
+                종목=element['itmNm'],
             ),
-            공제여부=finder.get('prhTxamtDdcClNm') == '공제' or finder.get('prhTxamtDdcYn') == 'Y',
+            공제여부=element['prhTxamtDdcClNm'] == '공제' or element['prhTxamtDdcYn'] == 'Y',
         )
 
 
