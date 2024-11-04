@@ -224,6 +224,39 @@ class HometaxScraper:
                                    payload=payload.encode('utf8'),
                                    content_type='application/xml; charset=UTF-8')
 
+    def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
+        return self.session.post(f'https://{subdomain + '.' if subdomain else ''}hometax.go.kr/wqAction.do',
+                                 params={
+                                     "actionId": action_id,
+                                     "screenId": screen_id,
+                                     "popupYn": "false",
+                                     "realScreenId": real_screen_id
+                                 },
+                                 data=self.nts_postfix_added(json),
+                                 headers={'Content-Type': 'application/json'}, timeout=20).json()
+
+    def paginate_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
+        page = 1
+        while True:
+            pageInfoVO = {
+                'pageNum': page, 'pageSize': self.PAGE_SIZE, 'totalCount': 0
+            }
+            data = self.request_action_json(action_id, screen_id,
+                                            json | {'pageInfoVo': pageInfoVO, 'excelPageInfoVo': pageInfoVO},
+                                            real_screen_id, subdomain)
+
+            yield from data['etxivIsnBrkdTermDVOList']
+
+            if data['pageInfoVO']['totalCount'] is None:
+                raise Exception(f'홈택스 응답 오류: {data}')
+
+            if page * self.PAGE_SIZE > data['pageInfoVO']['totalCount']:
+                return
+
+            page += 1
+            # 홈택스 쓰로틀링에 걸리는 걸 방지하기 위해 페이지마다 간격을 둔다.
+            time.sleep(Throttled.wait)
+
     def request_action(self, action_id, screen_id, real_screen_id='', payload=None, content_type='application/xml; charset=UTF-8'):
         return self.session.post('https://hometax.go.kr/wqAction.do',
                                  params={
@@ -395,9 +428,11 @@ class HometaxScraper:
             # 홈택스 쓰로틀링에 걸리는 걸 방지하기 위해 페이지마다 간격을 둔다.
             time.sleep(Throttled.wait)
 
-    def nts_postfix_added(self, payload):
+    def nts_postfix_added(self, data: json):
         second = datetime.now().strftime('%0S')
-        return f'{payload}<nts<nts>nts>{int(second) + 11}{k4(payload, second, userId=self.user_info.홈택스ID)}{second}'
+        payload = json.dumps(data)
+        return (payload.replace(' ', '')
+                + f'<nts<nts>nts>{int(second) + 11}{k4(payload, second, userId=self.user_info.홈택스ID)}{second}')
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:
