@@ -22,7 +22,7 @@ from hometaxbot import random_second, AuthenticationFailed, Throttled
 from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4
 from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자
 from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xml_response, parse_response, \
-    check_error_on_response, CustomHttpAdapter
+    check_error_on_response, CustomHttpAdapter, json_minified_dumps
 
 
 class HometaxScraper:
@@ -226,12 +226,10 @@ class HometaxScraper:
 
     def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
         return self.session.post(f'https://{subdomain + '.' if subdomain else ''}hometax.go.kr/wqAction.do',
-                                 params={
-                                     "actionId": action_id,
-                                     "screenId": screen_id,
-                                     "popupYn": "false",
-                                     "realScreenId": real_screen_id
-                                 },
+                                 params={"actionId": action_id,
+                                         "screenId": screen_id,
+                                         "popupYn": "false",
+                                         "realScreenId": real_screen_id},
                                  data=self.nts_postfix_added(json),
                                  headers={'Content-Type': 'application/json'}, timeout=20).json()
 
@@ -242,10 +240,10 @@ class HometaxScraper:
                 'pageNum': page, 'pageSize': self.PAGE_SIZE, 'totalCount': 0
             }
             data = self.request_action_json(action_id, screen_id,
-                                            json | {'pageInfoVo': pageInfoVO, 'excelPageInfoVo': pageInfoVO},
+                                            json | {'pageInfoVo': pageInfoVO},
                                             real_screen_id, subdomain)
             try:
-                yield from data[next(k for k in data if k.endswith('DVOList'))]
+                yield from data[next(k for k in data if k.endswith('VOList'))]
             except StopIteration:
                 return
 
@@ -312,10 +310,10 @@ class HometaxScraper:
         nts = random_second()
         res = self.session.post(
             "https://teht.hometax.go.kr/wqAction.do?actionId=ATTABZAA001R17&screenId=UTEABGAA21&popupYn=false&realScreenId=",
-            data=json.dumps({"tin": self.tin, "txprClsfCd": '02', "txprDscmNo": "", "txprDscmNoClCd": "",
-                             "txprDscmDt": "", "searchOrder": "02/01", "outDes": "bmanBscInfrInqrDVO", "txprNm": "",
-                             "crpTin": "", "mntgTxprIcldYn": "", "resnoAltHstrInqrYn": "",
-                             "resnoAltHstrInqrBaseDtm": "", "sameBmanInqrYn": "N", "rpnBmanRetrYn": "N"}).replace(' ', '')
+            data=json_minified_dumps({"tin": self.tin, "txprClsfCd": '02', "txprDscmNo": "", "txprDscmNoClCd": "",
+                                      "txprDscmDt": "", "searchOrder": "02/01", "outDes": "bmanBscInfrInqrDVO",
+                                      "txprNm": "", "crpTin": "", "mntgTxprIcldYn": "", "resnoAltHstrInqrYn": "",
+                                      "resnoAltHstrInqrBaseDtm": "", "sameBmanInqrYn": "N", "rpnBmanRetrYn": "N"})
                  + f'<nts<nts>nts>{nts}rjNjDYrX04H1ZeoLR7s39xGAggSKKn7ZTGjjfyMK0{nts - 11}',
             headers={'Content-Type': "application/json"})
 
@@ -432,9 +430,8 @@ class HometaxScraper:
 
     def nts_postfix_added(self, data: json):
         second = datetime.now().strftime('%0S')
-        payload = json.dumps(data)
-        return (payload.replace(' ', '')
-                + f'<nts<nts>nts>{int(second) + 11}{k4(payload, second, userId=self.user_info.홈택스ID)}{second}')
+        payload = json_minified_dumps(data)
+        return payload + f'<nts<nts>nts>{int(second) + 11}{k4(payload, second, userId=self.user_info.홈택스ID)}{second}'
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:

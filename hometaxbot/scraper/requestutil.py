@@ -1,3 +1,4 @@
+import json
 import random
 import re
 import time
@@ -112,3 +113,7 @@ class XMLValueFinder:
 
 def get_quarter_by_date(date):
     return int((date.month - 1) / 3 + 1)
+
+
+def json_minified_dumps(obj):
+    return json.dumps(obj, separators=(',', ':'))
