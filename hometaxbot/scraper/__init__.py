@@ -168,6 +168,7 @@ class HometaxScraper:
                                 params={"screenId": "index"},
                                 data='<map id="postParam"><popupYn>false</popupYn></map>'.encode('utf-8'),
                                 headers={'Content-Type': "application/xml; charset=UTF-8"}).json()
+        self.check_authenticated(res_json)
         pubcUserNo = res_json['resultMsg']['sessionMap']['pubcUserNo']
         nts = random_second()
         res_json = self.request_action(
@@ -225,6 +226,8 @@ class HometaxScraper:
                                    content_type='application/xml; charset=UTF-8')
 
     def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
+        # TODO 응답 오류 처리
+        # 오류 예시: {'resultMsg': {'detailMsg': '', 'msg': '6개월이상은 조회할 수 없습니다. \n 조회에 실패 실패하였습니다.', 'exceptType': 'APPLICATION', 'serviceTxId': 'PTEET1103_ATEETBDA001R01_T00799_1731908564438', 'detailLogYn': 'N', 'code': 'ETICMZ0008', 'result': 'F'}}
         return self.session.post(f'https://{subdomain + '.' if subdomain else ''}hometax.go.kr/wqAction.do',
                                  params={"actionId": action_id,
                                          "screenId": screen_id,
@@ -432,6 +435,13 @@ class HometaxScraper:
         second = datetime.now().strftime('%0S')
         payload = json_minified_dumps(data)
         return payload + f'<nts<nts>nts>{int(second) + 11}{k4(payload, second, userId=self.user_info.홈택스ID)}{second}'
+
+    def check_authenticated(self, res_json: dict):
+        if 'resultMsg' not in res_json:
+            raise Exception('홈택스 응답 오류: ' + json.dumps(res_json, ensure_ascii=False))
+
+        if 'sessionMap' not in res_json['resultMsg']:
+            raise AuthenticationFailed('홈택스에 로그인되지 않은 상태입니다.')
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:
