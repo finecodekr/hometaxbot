@@ -113,6 +113,7 @@ class 세금계산서종류(Enum):
 @dataclass(kw_only=True)
 class 세금계산서(HometaxModel):
     승인번호: str
+    전송일자: date  # 세금계산서 XML에는 포함되어 있지 않는 필드로 홈택스 시스템에서만 제공한다.
     작성일자: date
     세금계산서분류: 세금계산서분류
     세금계산서종류: 세금계산서종류

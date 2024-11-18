@@ -31,6 +31,7 @@ class TestScrape(unittest.TestCase):
         end = date(2024, 10, 1)
 
         tax_invoice = next(transactions.세금계산서(scraper, begin, end))
+        self.assertIsNotNone(tax_invoice.전송일자)
         self.assertNotEqual(tax_invoice.공급자.납세자번호, tax_invoice.공급받는자.납세자번호)
         self.assertGreater(tax_invoice.총금액, 0)
         self.assertGreater(next(transactions.카드매입(scraper, begin, end)).총금액, 0)

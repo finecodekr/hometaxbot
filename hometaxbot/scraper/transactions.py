@@ -78,10 +78,10 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
                             }
                         },
                         subdomain='teet'):
-                    yield scrape_세금계산서_detail(scraper, element['etan'])
+                    yield scrape_세금계산서_detail(scraper, element['etan'], element['wrtDt'])
 
 
-def scrape_세금계산서_detail(scraper: HometaxScraper, etan):
+def scrape_세금계산서_detail(scraper: HometaxScraper, etan, wrtDt):
     scraper.request_permission('teet')
     etan = etan.replace('-', '')
     res = scraper.session.post("https://teet.hometax.go.kr/wqAction.do",
@@ -117,6 +117,7 @@ def scrape_세금계산서_detail(scraper: HometaxScraper, etan):
 
     return models.세금계산서(
         승인번호=finder.get('TaxInvoiceDocument/IssueID'),
+        전송일자=wrtDt,
         작성일자=finder.get('TaxInvoiceDocument/IssueDateTime'),
         세금계산서분류=finder.get('TaxInvoiceDocument/TypeCode')[:2],
         세금계산서종류=finder.get('TaxInvoiceDocument/TypeCode')[2:],
