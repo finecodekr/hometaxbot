@@ -28,7 +28,7 @@ class TestScrape(unittest.TestCase):
         scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
 
         begin = date(2024, 1, 1)
-        end = date(2024, 3, 1)
+        end = date(2024, 10, 1)
 
         tax_invoice = next(transactions.세금계산서(scraper, begin, end))
         self.assertNotEqual(tax_invoice.공급자.납세자번호, tax_invoice.공급받는자.납세자번호)
