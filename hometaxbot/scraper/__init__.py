@@ -218,6 +218,11 @@ class HometaxScraper:
 
         self.fetch_user_and_traders()
 
+    def cookies(self):
+        COOKIE_ATTRS = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment",
+                        "comment_url", "rfc2109"]
+        return [{attr: getattr(cookie, attr) for attr in COOKIE_ATTRS} for cookie in self.session.cookies]
+
     def request_action_xml(self, action_id, screen_id, real_screen_id='', payload: str = None):
         return ensure_xml_response(self.request_action,
                                    action_id,
