@@ -16,6 +16,7 @@ from xml.etree.ElementTree import Element
 import requests
 import yaml
 from OpenSSL import crypto
+from cryptography.hazmat.primitives._serialization import Encoding
 
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
@@ -83,7 +84,7 @@ class HometaxScraper:
                   f'{datetime.now().strftime("%Y%m%d%H%M%S")}$' \
                   f'{base64.b64encode(sign.sign(pckEncSsn.encode("utf-8"))).decode("utf-8")}'
         logSgnt = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        cert = crypto.dump_certificate(crypto.FILETYPE_PEM, sign.pub_cert).decode('utf-8')
+        cert = sign.pub_cert.public_bytes(Encoding.PEM).decode('utf-8')
 
         res = self.session.post("https://www.hometax.go.kr/pubcLogin.do",
                                 params={"domain": "hometax.go.kr", "mainSys": "Y"},
