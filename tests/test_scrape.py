@@ -22,6 +22,7 @@ class TestScrape(unittest.TestCase):
 
         self.assertIsNotNone(next(reports.납부내역(scraper, begin, end)).전자납부번호)
         self.assertIsNotNone(next(reports.납부내역(scraper, begin, end)).전자납부번호)
+        self.assertIsNotNone(next(reports.환급금조회(scraper, begin, end)))
 
     def test_scrape_데이터(self):
         scraper = HometaxScraper()

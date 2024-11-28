@@ -26,8 +26,14 @@ def convert_field_type(to_type, value):
 
 
 hometax_field_mapping = {
-    (date, str): lambda to_type, value: dateutil.parser.parse(value).date(),
+    (date, str): lambda to_type, value: parse_date(value),
     (datetime, str): lambda to_type, value: dateutil.parser.parse(value),
     (Enum, str): lambda to_type, value: to_type(value),
     (Enum, Enum): lambda to_type, value: value,
 }
+
+
+def parse_date(value: str) -> date:
+    if len(value) == 6:
+        value += '01'
+    return dateutil.parser.parse(value).date()
