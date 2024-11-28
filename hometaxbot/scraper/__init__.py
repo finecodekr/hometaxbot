@@ -256,6 +256,9 @@ class HometaxScraper:
             except StopIteration:
                 return
 
+            if 'pageInfoVO' not in data:
+                return # 페이지 정보가 없으면 더 이상 페이지가 없다고 가정한다.
+
             if data['pageInfoVO']['totalCount'] is None:
                 raise Exception(f'홈택스 응답 오류: {data}')
 
