@@ -283,6 +283,7 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
                 총금액=element['totaTrsAmt'],
                 승인번호=element['aprvNo'],
                 발급수단=element['spstCnfrClNm'],
+                발행구분=element.get('pblClCd'),
                 승인구분=element['trsClNm'],
                 매입자명=element['rcprTxprNm'],
                 가맹점=scraper.selected_trader,
@@ -318,6 +319,7 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
             총금액=element['totaTrsAmt'],
             승인번호=element['aprvNo'],
             발급수단=element['spstCnfrClNm'],
+            발행구분=element.get('pblClCd'),
             승인구분=element['trsClNm'],
             매입자명=element['rcprTxprNm'],
             가맹점=납세자(
