@@ -37,4 +37,6 @@ class TestHometaxLogin(unittest.TestCase):
         self.assertEqual(scraper.user_info.납세자번호, scraper.selected_trader.납세자번호)
         self.assertIsInstance(scraper.selected_trader.개업일, date)
 
-        self.assertEqual(6, len(next(scraper.fetch_세무대리인()).관리번호))
+        수임 = next(scraper.fetch_세무대리수임정보())
+        self.assertEqual(scraper.user_info.납세자번호, 수임.납세자.납세자번호)
+        self.assertEqual(6, len(수임.세무대리인.관리번호))

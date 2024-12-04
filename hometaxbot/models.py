@@ -58,6 +58,14 @@ class 세무대리인:
 
 
 @dataclass(kw_only=True)
+class 세무대리수임정보:
+    납세자: 납세자
+    세무대리인: 세무대리인
+    수임일: date
+    정보제공범위: str
+
+
+@dataclass(kw_only=True)
 class 전자신고결과조회(HometaxModel):
     세무서코드: str
     과세연월: str
