@@ -16,7 +16,7 @@ class TestScrape(unittest.TestCase):
         begin = date(2024, 1, 1)
         end = date(2024, 6, 1)
 
-        results: List[전자신고결과조회] = list(reports.전자신고결과조회(scraper, begin, end))
+        results = list(reports.전자신고결과조회(scraper, begin, end))
         self.assertIsInstance(results[0].접수일, date)
         self.assertIsInstance(results[0].금액, Decimal)
 

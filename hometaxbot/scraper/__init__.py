@@ -8,7 +8,7 @@ import subprocess
 import time
 from datetime import datetime
 from http import HTTPStatus
-from typing import List, TypedDict
+from typing import List, TypedDict, TypeVar
 from urllib.parse import unquote_plus
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element
@@ -501,7 +501,10 @@ def model_from_hometax_xml(model_class, element: Element):
                           for child in element if HOMETAX_XML_FIELDS[model_class.__name__].get(child.tag)})
 
 
-def model_from_hometax_json(model_class, data: dict):
+T = TypeVar("T")
+
+
+def model_from_hometax_json(model_class: T, data: dict) -> T:
     return model_class(**{HOMETAX_XML_FIELDS[model_class.__name__][key]: value
                           for key, value in data.items() if HOMETAX_XML_FIELDS[model_class.__name__].get(key)})
 
