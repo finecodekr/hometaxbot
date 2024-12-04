@@ -47,6 +47,17 @@ class 납세자(HometaxModel):
 
 
 @dataclass(kw_only=True)
+class 세무대리인:
+    상호: str
+    사업자번호: str
+    관리번호: str
+    사업장소재지: str = None
+    대표자성명: str = None
+    대표자주민등록번호: str = None
+    전화번호: str = None
+
+
+@dataclass(kw_only=True)
 class 전자신고결과조회(HometaxModel):
     세무서코드: str
     과세연월: str

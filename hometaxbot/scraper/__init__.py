@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives._serialization import Encoding
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
 from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4
-from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자
+from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자, 세무대리인
 from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xml_response, parse_response, \
     check_error_on_response, CustomHttpAdapter, json_minified_dumps
 
@@ -451,6 +451,16 @@ class HometaxScraper:
 
         if 'sessionMap' not in res_json['resultMsg']:
             raise AuthenticationFailed('홈택스에 로그인되지 않은 상태입니다.')
+
+    def fetch_세무대리인(self):
+        data = self.request_action_json('ATXPPBAA001R18', 'UTXPPBAB61', {})
+        for item in data['txaaInfrDVOList']:
+            yield 세무대리인(
+                상호=item['txaaAdmTnmNm'],
+                사업자번호=item['bsno'],
+                전화번호=item['txaaAdmTelno'],
+                관리번호=item['txaaAdmNoEncCntn']
+            )
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:
