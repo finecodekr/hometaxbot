@@ -10,7 +10,7 @@ from hometaxbot.types import HometaxModel
 class 홈택스사용자구분코드(Enum):
     개인 = '01'
     개인사업자 = '02'
-    법인 = '03'
+    법인사업자 = '03'
 
 
 @dataclass(kw_only=True)
