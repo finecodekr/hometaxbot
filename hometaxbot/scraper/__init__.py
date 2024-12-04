@@ -467,6 +467,30 @@ class HometaxScraper:
                 수임일=item['afaDt'],
             )
 
+    def 사업자등록상태(self):
+        data = self.request_action_json('ATTABZAA001R08', 'UTEABAAA13', {
+            "dongCode": self.selected_trader.납세자번호[3:5],
+            "inqrTrgtClCd": "1",
+            "mobYn": "N",
+            "psbSearch": "Y",
+            "pubcUserNo": self.pubcUserNo,
+            "txprDscmNo": self.selected_trader.납세자번호,
+            "userReqInfoVO": {}
+        })
+        result = {
+            '등록상태': data['trtCntn']
+        }
+        result['면세구분'] = '면세' if any([keyword in result['등록상태'] for keyword in ['면세', '고유번호가 부여된 단체']]) else '과세'
+        if '전환된 날짜' in result['등록상태']:
+            try:
+                result['과세유형전환'] = dict(
+                    전환일자=datetime.strptime(re.search(r'전환된 날짜는 (.+?) 입니다.', result['등록상태']).group(1), '%Y년 %m월 %d일').date(),
+                    전환유형=re.search(r'부가가치세 (.+?) 입니다.', result['등록상태']).group(1)
+                )
+            except Exception as e:
+                logging.error(e)
+        return result
+
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:
     HOMETAX_XML_FIELDS = yaml.safe_load(f)

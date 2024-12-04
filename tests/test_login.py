@@ -40,3 +40,5 @@ class TestHometaxLogin(unittest.TestCase):
         수임 = next(scraper.fetch_세무대리수임정보())
         self.assertEqual(scraper.user_info.납세자번호, 수임.납세자.납세자번호)
         self.assertEqual(6, len(수임.세무대리인.관리번호))
+
+        self.assertEqual('과세', scraper.사업자등록상태()['면세구분'])
