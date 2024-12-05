@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from typing import get_type_hints
+from zoneinfo import ZoneInfo
 
 import dateutil.parser
 
@@ -27,7 +28,7 @@ def convert_field_type(to_type, value):
 
 hometax_field_mapping = {
     (date, str): lambda to_type, value: parse_date(value),
-    (datetime, str): lambda to_type, value: dateutil.parser.parse(value),
+    (datetime, str): lambda to_type, value: dateutil.parser.parse(value).replace(tzinfo=ZoneInfo('Asia/Seoul')),
     (Enum, str): lambda to_type, value: to_type(value),
     (Enum, Enum): lambda to_type, value: value,
 }
