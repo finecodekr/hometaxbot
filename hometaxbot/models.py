@@ -88,6 +88,7 @@ class 전자신고결과조회(HometaxModel):
     업종코드: str
     공급가액: Decimal  # 예시: 10500000
     금액: Decimal
+    납부금액: Decimal
 
 
 @dataclass(kw_only=True)

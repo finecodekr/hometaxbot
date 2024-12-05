@@ -25,7 +25,7 @@
     lstStmnYn: # Y
     lstAltDataMaagUserId:
     aprpAfthPmtTxamt: # 0
-    ogntxSbtrPmtTxamt:  금액 # 503580
+    ogntxSbtrPmtTxamt: 납부금액 # 503580
     rtnCvaId: 접수번호
     stmnKndCd: 신고서종류코드 # F01
     rtnClDetailNm: 신고유형 # 정기신고
@@ -42,7 +42,7 @@
     itrfCd: # 14
     paygSchuTxamt: # 0
     fnftxSbtrScpmTxamt: # 0
-    ogntxSbtrScpmTxamt:  # 503580
+    ogntxSbtrScpmTxamt: 금액 # 503580
     cmptTxamt: # 0
     lstAltDtm: 접수일시 # 20191203145924
     inptOptrMemNo: # ZZZZZZZ
