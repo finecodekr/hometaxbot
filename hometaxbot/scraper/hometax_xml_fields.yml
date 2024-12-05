@@ -51,7 +51,7 @@
     fnftxSbtrPmtTxamt: # 0
     taPgmCd: # 1001
     errVrfDtm: # 20191203145916
-    pymnYm: # 201911
+    pymnYm: 지급연월 # 201911
     sbmsYm: # 201912
     userId: 홈택스ID
     reTxamt: # 0
