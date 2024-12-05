@@ -63,3 +63,29 @@ def 환급금조회(scraper: HometaxScraper, begin: date, end: date) -> Generato
                 'txprDscmNo': '',
             }):
         yield model_from_hometax_json(models.환급금조회, element)
+
+
+def 체납내역(scraper: HometaxScraper, begin: date, end: date) -> Generator[models.체납내역, None, None]:
+    # My홈택스 체납
+    scraper.request_permission(screen_id='UTXPPBAB73')
+    for element in scraper.paginate_action_json(
+            'ATXPPBAA001R17', 'UTXPPBAB73',
+            json={"endDt": "",
+                  "ntplCrpClCd": "03",
+                  "strtDt": "",
+                  "tin": scraper.tin,
+                  "survTtl": ""}):
+        yield model_from_hometax_json(models.체납내역, element)
+
+
+def 고지내역(scraper: HometaxScraper, begin: date, end: date) -> Generator[models.고지내역, None, None]:
+    # My홈택스 고지
+    scraper.request_permission(screen_id='UTXPPBAB72')
+    for element in scraper.paginate_action_json(
+            'ATXPPBAA001R11', 'UTXPPBAB72',
+            json={"endDt": end.strftime("%Y%m%d"),
+                  "ntplCrpClCd": "03",
+                  "strtDt": begin.strftime("%Y%m%d"),
+                  "tin": scraper.tin,
+                  "survTtl": ""}):
+        yield model_from_hometax_json(models.고지내역, element)

@@ -138,3 +138,38 @@
     rmtnBrkdId:
     itrfNm: 세목  # 법인세
     txhfOgzNm: 세무서명  # 분당
+체납내역:
+    rsdPmtTxamt: 잔여납부세액  # 3470280
+    txprDscmNo: 납세자번호  # 129-86-67290
+    txnrmHt: 과세기간_세목  # 2018년2기분 부가가치세
+    rdcTxamt: 감액세액  # 0
+    txprNm: 납세자명  # 주식회사 이콜레모
+    nftam: 고지세액  # 3119410
+    poonPmtTxamt: 일부납부세액  # 0
+    itrfCdPblNo: 전자납부번호   # 0126-1903-5-41-11168940
+    aftTxamtPmtUrl: 납부URL
+    pmtYnCd: 상태  # 미납
+    aftItrfNm: 세목명  # 부가가치세
+    aftItrfCd: 세목코드  # 41
+고지내역:
+    itrfCd: 세목코드  # 41
+    elctPmtNo: 전자납부번호  # 0126-2003-5-41-22057360
+    lvyDcsId: 고지번호  # 100000000047718675
+    txprDscmNo: 납세자번호  # 129-86-67290
+    nftamPmtUrl: 납부URL
+    ntfTxamt: 고지세액  # 710540
+    txprNm: 납세자명  # 주식회사 이콜레모
+    lvyDcsPmtDdtBrkdSn:   # 100000000053498750
+    impsTrgtTin:   # 000000113901417154
+    pmtDt: 납부기한  # 2020-03-31
+    txpDutyTmntRsnNm: 납부의무종결사유  # 해당없음
+    ntcpDlvDt: 고지송달일
+    pmtYn: 납부여부  # 미납
+    ntcpType: 고지서유형  # 일반고지
+    iprdYirdAmt: 분납_연부연납세액  # 0
+    lvyDcsTxprBrkdSn:   # 100000000049865382
+    pmtSchuTxamt: 납부할세액  # 710540
+    txnrmHt: 과세기간_세목  # 2019년2기분 부가가치세
+    rdcTxamt: 감액세액  # 0
+    itrfNm: 세목  # 부가가치세
+    ntcpXamp:

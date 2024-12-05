@@ -232,3 +232,40 @@ class 카드매출월간집계(HometaxModel):
     합계금액: Decimal
     매입처명: str
 
+
+@dataclass(kw_only=True)
+class 체납내역:
+    잔여납부세액: Decimal  # 3470280
+    납세자번호: str  # 129-86-67290
+    과세기간_세목: str  # 2018년2기분 부가가치세
+    감액세액: Decimal  # 0
+    납세자명: str  # 주식회사 이콜레모
+    고지세액: Decimal   # 3119410
+    일부납부세액: Decimal  # 0
+    전자납부번호: str   # 0126-1903-5-41-11168940
+    납부URL: str = None
+    상태: str  # 미납
+    세목명: str  # 부가가치세
+    세목코드: str  # 41
+
+
+@dataclass(kw_only=True)
+class 고지내역:
+    세목코드: str  # 41
+    전자납부번호: str  # 0126-2003-5-41-22057360
+    고지번호: str   # 100000000047718675
+    납세자번호: str  # 129-86-67290
+    납부URL: str = None
+    고지세액: Decimal  # 710540
+    납세자명: str  # 주식회사 이콜레모
+    납부기한: date  # 2020-03-31
+    납부의무종결사유: str = None  # 해당없음
+    고지송달일: date
+    납부여부: str  # 미납
+    고지서유형: str  # 일반고지
+    분납_연부연납세액: Decimal  # 0
+    납부할세액: Decimal  # 710540
+    과세기간_세목: str  # 2019년2기분 부가가치세
+    감액세액: Decimal  # 0
+    세목: str  # 부가가치세
+
