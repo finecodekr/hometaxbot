@@ -130,7 +130,7 @@
     rfndDcsDfntDt: 환급결정일  # 20190417
     bokTrtRsltCd:   # 00
     attrYm: 귀속연월  # 201812
-    rfndId:
+    rfndId: 환급번호
     impsTrgtTin:
     rfndRpotId:
     rfamtPymnAmt: 금액

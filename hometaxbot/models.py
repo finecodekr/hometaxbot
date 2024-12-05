@@ -105,6 +105,7 @@ class 납부내역(HometaxModel):
 
 @dataclass(kw_only=True)
 class 환급금조회(HometaxModel):
+    환급번호: str
     세무서코드: str
     세무서명: str
     세목: str
