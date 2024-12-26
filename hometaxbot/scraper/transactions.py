@@ -1,9 +1,10 @@
 import json
+import time
 from datetime import date
 
 from dateutil.relativedelta import relativedelta
 
-from hometaxbot import models
+from hometaxbot import models, Throttled
 from hometaxbot.models import 수입문서, 납세자, 연락처, 세금계산서품목
 from hometaxbot.scraper import HometaxScraper, parse_response
 from hometaxbot.scraper.requestutil import XMLValueFinder, action_params, get_quarter_by_date
@@ -79,6 +80,7 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
                         },
                         subdomain='teet'):
                     yield scrape_세금계산서_detail(scraper, element['etan'], element['wrtDt'])
+                    time.sleep(Throttled.wait)
 
 
 def scrape_세금계산서_detail(scraper: HometaxScraper, etan, wrtDt):
