@@ -17,7 +17,7 @@ class AuthenticationFailed(HometaxException):
 
 
 class Throttled(HometaxException):
-    wait = 3  # 재시도 대기시간 초
+    wait = 1  # 재시도 대기시간 초
 
 
 def random_second():
