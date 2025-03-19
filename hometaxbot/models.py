@@ -185,7 +185,7 @@ class 세금계산서품목(HometaxModel):
     품목명: str
     규격: str = None
     비고: str = None
-    수량: int = None # `-` 허용. 단위는 attribute로 들어간다.
+    수량: Decimal = None # `-` 허용. 단위는 attribute로 들어간다.
     단가: Decimal  # 소수점 2자리까지 표현. `-` 허용
     공급가액: Decimal  # 원단위까지. `-` 허용
     세액: Decimal
