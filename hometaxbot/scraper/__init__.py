@@ -115,12 +115,25 @@ class HometaxScraper:
         """
         공동인증서를 홈택스에 등록한다.
         """
+        self.request_permission(screen_id='UTXPPABA14')
+
         nts = random_second()
-        res = self.session.post("https://www.hometax.go.kr/wqAction.do?actionId=ATXPPZXA001R01&screenId=UTXPPABA14",
-                                data=f"<map></map><nts<nts>nts>{nts}dGGBLG2rRWBeuYMviAZyJjAphI9Y3wCmWhg1y84EU{nts - 11}")
-        if res.status_code == HTTPStatus.NOT_FOUND:
-            raise Throttled('홈택스 서버에 접속할 수 없습니다. 잠시 후 다시 시도해주세요.')
-        pckEncSsn = parse_response(res).find('.//pkcEncSsn').text
+        res = self.request_action(
+            action_id='ATXPPABA003R02',
+            screen_id='UTXPPABA14',
+            payload=json.dumps({
+                "crpBmanPkcRgtNbSu": "",
+                "crpPkcRgtVrfYn": "",
+                "ntplBmanCrpBmanCl": "",
+                "tin": "",
+                "txprDscmNo": registration_no}
+            ) + f'<nts<nts>nts>{nts}mAGVLUUQsmZ8Uv9YJj9bAtbDAQARJTjesj6HaT{nts - 11}').json()
+
+        res = self.request_action(
+            'ATXPPZXA001R01',
+            'UTXPPABA14',
+            payload=f"{{}}<nts<nts>nts>{nts}dGGBLG2rRWBeuYMviAZyJjAphI9Y3wCmWhg1y84EU{nts - 11}").json()
+        pckEncSsn = res['pkcEncSsn']
 
         with open_files(cert_paths) as files:
             sign = load_cert(files, prikey_password)
@@ -142,25 +155,27 @@ class HometaxScraper:
                   f'{datetime.now().strftime("%Y%m%d%H%M%S")}$' \
                   f'{base64.b64encode(sign.sign(pckEncSsn.encode("utf-8"))).decode("utf-8")}'
         logSgnt = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-        cert = crypto.dump_certificate(crypto.FILETYPE_PEM, sign.pub_cert).decode('utf-8')
+        cert = sign.pub_cert.public_bytes(Encoding.PEM).decode('utf-8')
 
-        res = self.session.post(
-            "https://hometax.go.kr/wqAction.do?actionId=ATXPPABA001C01&screenId=UTXPPABA14&popupYn=false&realScreenId=",
-            data=f'<map id="ATXPPABA001C01">'
-                 f'<txprDscmNo>{registration_no}</txprDscmNo>'
-                 f'<logSgnt>{logSgnt}</logSgnt>'
-                 f'<cert>{cert}</cert>'
-                 f'<rnd/>'
-                 f'<randomEnc>{randomEnc}</randomEnc><hashCntn/>'
-                 f'</map><nts<nts>nts>{nts}b8FxcemzOmtdbg6smXGQTS9XHdH665qRZQSiW1XfXTg{nts - 11}',
-            headers={'Content-Type': "application/xml; charset=UTF-8"})
-        result_code = parse_response(res).find('.//result').text
-        if result_code != self.LOGIN_SUCCESS_CODE:
-            err_msg = parse_response(res).find('.//msg').text
-            if err_msg in ['선택하신 인증서는 이미 등록된 인증서 입니다.']:
-                return err_msg
-            raise Exception(err_msg)
-        return parse_response(res).find('.//msg').text
+        res = self.request_action(
+            action_id='ATXPPABA001C01',
+            screen_id='UTXPPABA14',
+            payload=json.dumps({
+                'cert': cert,
+                'hashCntn': '',
+                'logSgnt': logSgnt,
+                'pkcCertClCd': '',
+                'pkcEncSsn': '',
+                'randomEnc': randomEnc,
+                'skey': '',
+                'tin': '',
+                'txprDscmNo': registration_no,
+            }) + f'</map><nts<nts>nts>{nts}b8FxcemzOmtdbg6smXGQTS9XHdH665qRZQSiW1XfXTg{nts - 11}').json()
+        if res['resultMsg']['result'] != self.LOGIN_SUCCESS_CODE:
+            if res['resultMsg']['msg'] in ['선택하신 인증서는 이미 등록된 인증서 입니다.']:
+                return res['resultMsg']['msg']
+            raise Exception(res['resultMsg']['msg'])
+        return res['resultMsg']['msg']
 
     def fetch_user_and_traders(self):
         self.deselect_trader()
