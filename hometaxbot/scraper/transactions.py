@@ -286,7 +286,7 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
             "sumSplCft": "0",
         }).json()
 
-        DOWNLOAD_PAGE_SIZE = 5
+        DOWNLOAD_PAGE_SIZE = 1000
         for page in range(1, first_page['pageInfoVO']['totalCount'] // DOWNLOAD_PAGE_SIZE + 2):
             res = scraper.session.post('https://tecr.hometax.go.kr/wqAction.do', data={
                 "downloadParam": json.dumps({
