@@ -48,3 +48,8 @@ class TestScrape(unittest.TestCase):
 
         self.assertGreater(next(transactions.현금영수증(scraper, date(2023, 11, 1), date(2023, 12, 31))).총금액, 0)
         self.assertGreater(next(transactions.현금영수증(scraper, date(2024, 1, 1), date(2024, 3, 1))).총금액, 0)
+
+        results = list(transactions.현금영수증(scraper, date(2022, 4, 1), date(2022, 6, 27)))
+        self.assertEqual(50, len(results))
+        self.assertNotEqual(results[1], results[11])
+        self.assertGreater(results[0].총금액, 0)

@@ -1,7 +1,11 @@
+import csv
 import json
 import time
 from datetime import date
+from decimal import Decimal
+from io import StringIO
 
+import dateutil.parser
 from dateutil.relativedelta import relativedelta
 
 from hometaxbot import models, Throttled
@@ -257,38 +261,67 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
     scraper.request_permission('tecr')
 
     # 현금영수증 매출
+    # 매입과 달리 매출의 경우만 body를 암호화하고 있어서 일반 요청 대신 다운로드 요청으로 전환한다.
+    # 처음에는 일반 요청을 해서 몇몇 정보를 받은 후 그 정보를 이용해서 다시 다운로드 요청을 한다.
     for period_begin, period_end in split_date_range(begin, end, relativedelta(months=3)):
-        for element in scraper.paginate_action_json(
-                'ATECRCBA001R03', 'UTECRCB013',
-                json={
-                    "dprtUserYn": "N",
-                    "fleTp": "",
-                    "mrntTxprDscmNoEncCntn": "",
-                    "pubcUserNo": "all",
-                    "reqCd": "",
-                    "spjbTrsYn": "all",
-                    "spstCnfrId": "all",
-                    "sumTotaTrsAmt": "",
-                    "tin": scraper.tin,
-                    "trsDtRngEnd": period_end.strftime("%Y%m%d"),
-                    "trsDtRngStrt": period_begin.strftime("%Y%m%d"),
-                    "txprDscmNo": scraper.selected_trader.납세자번호,
-                    "totalCount": "0",
-                    "sumSplCft": "0",
-                }, subdomain='tecr'):
+        first_page = scraper.session.post('https://tecr.hometax.go.kr/wqAction.do', params={
+            "actionId": 'ATECRCBA001R03',
+            "screenId": 'UTECRCB013',
+            "popupYn": "false",
+            "realScreenId": ''
+        }, json={
+            "dprtUserYn": "N",
+            "fleTp": "",
+            "mrntTxprDscmNoEncCntn": "",
+            "pubcUserNo": "all",
+            "reqCd": "",
+            "spjbTrsYn": "all",
+            "spstCnfrId": "all",
+            "sumTotaTrsAmt": "",
+            "tin": scraper.tin,
+            "trsDtRngEnd": period_end.strftime("%Y%m%d"),
+            "trsDtRngStrt": period_begin.strftime("%Y%m%d"),
+            "txprDscmNo": scraper.selected_trader.납세자번호,
+            "totalCount": "0",
+            "sumSplCft": "0",
+        }).json()
+
+        res = scraper.session.post('https://tecr.hometax.go.kr/wqAction.do', data={
+            "downloadParam": json.dumps({
+                "fleTp": "txt",
+                "pblClCd": "all",
+                "reqCd": "00",
+                "sumTotaTrsAmt": first_page['sumTotaTrsAmt'],
+                "tin": scraper.tin,
+                "trsDtRngEnd": period_end.strftime("%Y%m%d"),
+                "trsDtRngStrt": period_begin.strftime("%Y%m%d"),
+                "totalCount": 0,
+                "sumSplCft": first_page['sumSplCft'],
+                "pageInfoVO": first_page['pageInfoVO'] | {'pageSize': 10000}
+            }),
+            'actionId': 'ATECRCBA001R03',
+            'screenId': 'UTECRCB013',
+            'noopen': False,
+            'downloadView': 'Y',
+        })
+
+        reader = StringIO(res.content.decode('utf8'))
+        next(reader)  # 첫 줄에 요약 정보 건너뛰기
+        reader = csv.DictReader(reader, delimiter='\t')
+        for row in reader:
             yield models.현금영수증(
                 매출매입='매출',
-                거래일시=element['trsDtm'],
-                거래구분=element['cshptTrsTypeNm'],
-                공급가액=element['splCft'],
-                부가세=element['vaTxamt'],
-                봉사료=element['tip'],
-                총금액=element['totaTrsAmt'],
-                승인번호=element['aprvNo'],
-                발급수단=element['spstCnfrClNm'],
-                발행구분=element.get('pblClCd'),
-                승인구분=element['trsClNm'],
-                매입자명=element['rcprTxprNm'],
+                거래일시=dateutil.parser.parse(row['매출일시']),
+                거래구분=row['비고'],
+                공급가액=Decimal(row['공급가액'].replace(',', '')),
+                부가세=Decimal(row['부가세'].replace(',', '')),
+                봉사료=Decimal(row['봉사료'].replace(',', '')),
+                총금액=Decimal(row['총금액'].replace(',', '')),
+                승인번호=row['승인번호'],
+                발급수단='',
+                발행구분=row['발행구분'],
+                승인구분=row['거래구분'],
+                매입자명=row['신분확인뒷4자리'],
                 가맹점=scraper.selected_trader,
             )
 
