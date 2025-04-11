@@ -79,11 +79,12 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
                             }
                         },
                         subdomain='teet'):
-                    yield scrape_세금계산서_detail(scraper, element['etan'], element['wrtDt'])
+                    yield scrape_세금계산서_detail(scraper, element['etan'], element['tmsnDt'])
                     time.sleep(Throttled.wait)
 
 
-def scrape_세금계산서_detail(scraper: HometaxScraper, etan, wrtDt):
+def scrape_세금계산서_detail(scraper: HometaxScraper, etan, 전송일자):
+    """전송일자는 세금계산서 XML 내에 없고 홈택스 시스템에서 관리하는 값이기 때문에 외부에서 전달 받아야 한다."""
     scraper.request_permission('teet')
     etan = etan.replace('-', '')
     res = scraper.session.post("https://teet.hometax.go.kr/wqAction.do",
@@ -119,7 +120,7 @@ def scrape_세금계산서_detail(scraper: HometaxScraper, etan, wrtDt):
 
     return models.세금계산서(
         승인번호=finder.get('TaxInvoiceDocument/IssueID'),
-        전송일자=wrtDt,
+        전송일자=전송일자,
         작성일자=finder.get('TaxInvoiceDocument/IssueDateTime'),
         세금계산서분류=finder.get('TaxInvoiceDocument/TypeCode')[:2],
         세금계산서종류=finder.get('TaxInvoiceDocument/TypeCode')[2:],
