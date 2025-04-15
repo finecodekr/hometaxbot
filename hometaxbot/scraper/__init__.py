@@ -30,6 +30,7 @@ class HometaxScraper:
     LOGIN_SUCCESS_CODE = 'S'
     HOMETAX_REQUEST_TIMEOUT = 7
     PAGE_SIZE = 10
+    DOWNLOAD_PAGE_SIZE = 1000
 
     user_info: 홈택스사용자 = None
     selected_trader: 납세자 = None

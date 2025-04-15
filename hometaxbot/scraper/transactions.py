@@ -38,53 +38,78 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
             }
 
             for period_begin, period_end in split_date_range(begin, end, relativedelta(months=3)):
-                for element in scraper.paginate_action_json(
-                        "ATEETBDA001R01", 'UTEETBDA01',
-                        json={
-                            "cstnInfoYn": "",
-                            "fleDwldYn": "",
-                            "fleTp": "",
-                            "icldCstnBmanInfr": "",
-                            "icldLsatInfr": "N",
-                            "resnoSecYn": "Y",
-                            "srtClCd": "1",
-                            "srtOpt": "02",
-                            "etxivIsnBrkdTermDVOPrmt": {
-                                "bmanCd": "00",
-                                "dmnrMpbNo": "",
-                                "dmnrTxprDscmNo": "",
-                                "dtCl": 조회기준코드["전송일자"],
-                                "etxivClsfCd": "all",
-                                "etxivKndCd": "all",
-                                "inqrDtEnd": period_end.strftime("%Y%m%d"),
-                                "inqrDtStrt": period_begin.strftime("%Y%m%d"),
-                                "isnTypeCd": "all",
-                                "pageNum": "",
-                                "pageSize": "10",
-                                "prhSlsClCd": prhSlsClCd,
-                                "screenId": "",
-                                "splrMpbNo": "",
-                                "splrTxprDscmNo": "",
-                                "tnmNm": "",
-                                "cstnBmanMpbNo": "",
-                                "cstnBmanTin": scraper.tin if 위수탁 else "",
-                                "dmnrTin": scraper.tin if 매입매출 == "매입" and not 위수탁 else "",
-                                "dmnrTnmNm": "",
-                                "etxivClCd": invoice_type_choices[invoice_type],
-                                "gubunCd": "",
-                                "mCd": "",
-                                "mqCd": "",
-                                "qCd": "",
-                                "splrTin": scraper.tin if 매입매출 == "매출" and not 위수탁 else "",
-                                "splrTnmNm": "",
-                                "tmsnDtIn": "",
-                                "tmsnDtOut": "",
-                                "yCd": ""
-                            }
-                        },
-                        subdomain='teet'):
-                    yield scrape_세금계산서_detail(scraper, element['etan'], element['tmsnDt'])
-                    time.sleep(Throttled.wait)
+                params = {
+                    "bmanCd": "00",
+                    "dmnrMpbNo": "",
+                    "dmnrTxprDscmNo": "",
+                    "dtCl": 조회기준코드["전송일자"],
+                    "etxivClsfCd": "all",
+                    "etxivKndCd": "all",
+                    "inqrDtEnd": period_end.strftime("%Y%m%d"),
+                    "inqrDtStrt": period_begin.strftime("%Y%m%d"),
+                    "isnTypeCd": "all",
+                    "pageNum": "",
+                    "pageSize": "10",
+                    "prhSlsClCd": prhSlsClCd,
+                    "screenId": "",
+                    "splrMpbNo": "",
+                    "splrTxprDscmNo": "",
+                    "tnmNm": "",
+                    "cstnBmanMpbNo": "",
+                    "cstnBmanTin": scraper.tin if 위수탁 else "",
+                    "dmnrTin": scraper.tin if 매입매출 == "매입" and not 위수탁 else "",
+                    "dmnrTnmNm": "",
+                    "etxivClCd": invoice_type_choices[invoice_type],
+                    "gubunCd": "",
+                    "mCd": "",
+                    "mqCd": "",
+                    "qCd": "",
+                    "splrTin": scraper.tin if 매입매출 == "매출" and not 위수탁 else "",
+                    "splrTnmNm": "",
+                    "tmsnDtIn": "",
+                    "tmsnDtOut": "",
+                    "yCd": ""
+                }
+                first_page = scraper.request_action_json("ATEETBDA001R01", 'UTEETBDA01', json={
+                    "cstnInfoYn": "",
+                    "fleDwldYn": "",
+                    "fleTp": "",
+                    "icldCstnBmanInfr": "",
+                    "icldLsatInfr": "N",
+                    "resnoSecYn": "Y",
+                    "srtClCd": "1",
+                    "srtOpt": "02",
+                    "etxivIsnBrkdTermDVOPrmt": params
+                }, subdomain='teet')
+                for page in range(1, first_page['pageInfoVO']['totalCount'] // scraper.DOWNLOAD_PAGE_SIZE + 2):
+                    pageInfoVO = {
+                        'pageSize': scraper.DOWNLOAD_PAGE_SIZE,
+                        'pageNum': page,
+                        'totalCount': first_page['pageInfoVO']['totalCount']
+                    }
+                    res = scraper.session.post('https://teet.hometax.go.kr/wqAction.do', data={
+                        'downloadParam': json.dumps({
+                            "cstnInfoYn": "", "fleDwldYn": "Y", "fleTp": "txt", "icldCstnBmanInfr": "",
+                            "icldLsatInfr": "", "resnoSecYn": "Y", "srtClCd": "1", "srtOpt": "01",
+                            "affectedCnt": 0,
+                            "pageInfoVO": pageInfoVO,
+                            "excelPageInfoVO": pageInfoVO,
+                            "etxivIsnBrkdTermDVOPrmt": params,
+                        }),
+                        'actionId': 'ATEETBDA005R04',
+                        'screenId': 'UTEETBDA01',
+                        'noopen': False,
+                        'downloadView': 'Y'
+                    })
+
+                    reader = StringIO(res.content.decode('utf8'))
+                    for i in range(4):
+                        next(reader)
+
+                    dict_reader = csv.DictReader(reader, delimiter='\t')
+                    for row in dict_reader:
+                        yield scrape_세금계산서_detail(scraper, row['승인번호'].replace('-', ''), row['전송일자'])
+                        time.sleep(Throttled.wait)
 
 
 def scrape_세금계산서_detail(scraper: HometaxScraper, etan, 전송일자):
