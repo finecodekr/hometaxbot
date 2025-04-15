@@ -81,6 +81,10 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
                     "srtOpt": "02",
                     "etxivIsnBrkdTermDVOPrmt": params
                 }, subdomain='teet')
+
+                if first_page['pageInfoVO']['totalCount'] == 0:
+                    continue
+
                 for page in range(1, first_page['pageInfoVO']['totalCount'] // scraper.DOWNLOAD_PAGE_SIZE + 2):
                     pageInfoVO = {
                         'pageSize': scraper.DOWNLOAD_PAGE_SIZE,
@@ -310,6 +314,9 @@ def 현금영수증(scraper: HometaxScraper, begin: date, end: date):
             "totalCount": "0",
             "sumSplCft": "0",
         }).json()
+
+        if first_page['pageInfoVO']['totalCount'] == 0:
+            continue
 
         DOWNLOAD_PAGE_SIZE = 1000
         for page in range(1, first_page['pageInfoVO']['totalCount'] // DOWNLOAD_PAGE_SIZE + 2):
