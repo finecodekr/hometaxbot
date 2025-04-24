@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from io import BytesIO
 from typing import List
 
 from hometaxbot.types import HometaxModel
@@ -100,7 +101,13 @@ class 납부내역(HometaxModel):
     전자납부발행번호: str
     세목: str
     세목코드: str
-    전자납부번호: str
+    결정구분: str = None
+    신고연월: str = None
+    전자납부번호: str = None
+
+    def __post_init__(self):
+        if not self.전자납부번호:
+            self.전자납부번호 = '0126' + self.신고연월[2:] + self.결정구분 + self.세목코드 + self.전자납부발행번호
 
 
 @dataclass(kw_only=True)
@@ -269,3 +276,8 @@ class 고지내역:
     감액세액: Decimal  # 0
     세목: str  # 부가가치세
 
+
+@dataclass(kw_only=True)
+class 납부서(납부내역):
+    납세자: 납세자
+    pdf: BytesIO

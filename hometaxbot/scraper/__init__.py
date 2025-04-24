@@ -15,12 +15,11 @@ from xml.etree.ElementTree import Element
 
 import requests
 import yaml
-from OpenSSL import crypto
 from cryptography.hazmat.primitives._serialization import Encoding
 
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
-from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4
+from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4, snake_oil_encrypt
 from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자, 세무대리인, 세무대리수임정보
 from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xml_response, parse_response, \
     check_error_on_response, CustomHttpAdapter, json_minified_dumps
@@ -247,16 +246,15 @@ class HometaxScraper:
                                    payload=payload.encode('utf8'),
                                    content_type='application/xml; charset=UTF-8')
 
-    def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
+    def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None, nts_postfix=True):
         # TODO 응답 오류 처리
         # 오류 예시: {'resultMsg': {'detailMsg': '', 'msg': '6개월이상은 조회할 수 없습니다. \n 조회에 실패 실패하였습니다.', 'exceptType': 'APPLICATION', 'serviceTxId': 'PTEET1103_ATEETBDA001R01_T00799_1731908564438', 'detailLogYn': 'N', 'code': 'ETICMZ0008', 'result': 'F'}}
-        return self.session.post(f'https://{subdomain + '.' if subdomain else ''}hometax.go.kr/wqAction.do',
-                                 params={"actionId": action_id,
-                                         "screenId": screen_id,
-                                         "popupYn": "false",
+        res = self.session.post(f'https://{subdomain + '.' if subdomain else ''}hometax.go.kr/wqAction.do',
+                                params={"actionId": action_id, "screenId": screen_id, "popupYn": "false",
                                          "realScreenId": real_screen_id},
-                                 data=self.nts_postfix_added(json),
-                                 headers={'Content-Type': 'application/json'}, timeout=20).json()
+                                data=self.nts_postfix_added(json) if nts_postfix else json_minified_dumps(json),
+                                headers={'Content-Type': 'application/json'}, timeout=20)
+        return res.json()
 
     def paginate_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
         page = 1
@@ -506,6 +504,42 @@ class HometaxScraper:
             except Exception as e:
                 logging.error(e)
         return result
+
+    def login_as_tax_accountant(self, ctn_no, cta_password):
+        res = self.request_action_json('ATXPPCBA001R17', 'index_pp', json={
+            "cncClCd": "01", "srvcClCd": "01", "menuHtrnId": "100900", "ntplAthYn": "N", "ntplBmanAthYn": "N",
+            "crpBmanAthYn": "Y", "txaaYn": "Y", "cshptMrntYn": "", "pubcUserNo": self.pubcUserNo,
+            "dprtUserYn": "N", "athCd": "Y", "menuId": "", "prevMenuId": "", "menuTtl": ""})
+
+        self.request_permission(screen_id='UTEABHAA19')
+
+        res = self.request_action_json('ATXPPAAA006R43', 'UTEABHAA19', json={"ttxppal032DVO":{"menuId":""}})
+
+        res = self.session.post('https://hometax.go.kr/pubcLogin.do?operate=txaaLogin', data={
+            'txaaAdmNo': ctn_no,
+            'txaaPswd': snake_oil_encrypt(cta_password),
+        })
+        self.request_permission(screen_id='index_pp')
+        res = self.session.post(
+            'https://hometax.go.kr/wqAction.do?actionId=ATXPPCBA001R17&screenId=index_pp&popupYn=false&realScreenId=',
+            data=json.dumps({
+                "cncClCd": "01",
+                "srvcClCd": "01",
+                "menuHtrnId": "1100000000",
+                "ntplAthYn": "N",
+                "ntplBmanAthYn": "N",
+                "crpBmanAthYn": "Y",
+                "txaaYn": "Y",
+                "cshptMrntYn": "",
+                "pubcUserNo": self.pubcUserNo,
+                "dprtUserYn": "N",
+                "athCd": "Y",
+                "menuId": "",
+                "prevMenuId": "",
+                "menuTtl": ""}) + '<nts<nts>nts>32k8yZmB2hWqWIwyDqt5v50oHY58M4RpVphs78jPDZg21'
+        )
+        if res.json()['resultMsg']['result'] != self.LOGIN_SUCCESS_CODE:
+            raise AuthenticationFailed('홈택스에 로그인되지 않은 상태입니다.')
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:

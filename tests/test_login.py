@@ -4,7 +4,7 @@ from datetime import date
 from tests import testdata
 
 from hometaxbot.models import 홈택스사용자구분코드
-from hometaxbot.scraper import HometaxScraper
+from hometaxbot.scraper import HometaxScraper, reports
 
 
 class TestHometaxLogin(unittest.TestCase):
@@ -42,3 +42,13 @@ class TestHometaxLogin(unittest.TestCase):
         self.assertEqual(6, len(수임.세무대리인.관리번호))
 
         self.assertEqual('과세', scraper.사업자등록상태()['면세구분'])
+
+    def test_login_세무사(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CTA_CERT, testdata.CTA_PASSWORD)
+        scraper.login_as_tax_accountant(testdata.CTA_NO, testdata.CTA_ACCOUNT_PASSWORD)
+
+        for 납부서_obj in reports.납부서(scraper, date(2025, 3, 23), date(2025, 4, 22)):
+            self.assertEqual(10628710, 납부서_obj.금액)
+            self.assertEqual('고인화', 납부서_obj.납세자.납세자명)
+            break

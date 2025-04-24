@@ -94,3 +94,13 @@ def k7():
 
 def k8(action_id, second):
     return k4(action_id, second)
+
+
+def snake_oil_encrypt(pswd: str) -> str:
+    temp_string = ""
+    for ch in pswd:
+        encoded_char = chr(128 - ord(ch))
+        temp_string += encoded_char
+    encoded_bytes = temp_string.encode("latin1")  # 0~255 범위 안전하게 인코딩
+    base64_encoded = base64.b64encode(encoded_bytes).decode("ascii")
+    return base64_encoded

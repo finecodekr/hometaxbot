@@ -18,7 +18,8 @@ dependencies = [
     "urllib3",
     "idna",
     "requests",
-    "typer"
+    "typer",
+    "httpx[http2]",
 ]
 [project.urls]
 Home = "https://github.com/finecodekr/hometaxbot"
