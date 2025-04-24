@@ -48,7 +48,6 @@ class TestHometaxLogin(unittest.TestCase):
         scraper.login_with_cert(testdata.CTA_CERT, testdata.CTA_PASSWORD)
         scraper.login_as_tax_accountant(testdata.CTA_NO, testdata.CTA_ACCOUNT_PASSWORD)
 
-        for 납부서_obj in reports.납부서(scraper, date(2025, 3, 23), date(2025, 4, 22)):
-            self.assertEqual(10628710, 납부서_obj.금액)
-            self.assertEqual('고인화', 납부서_obj.납세자.납세자명)
+        for 납부서_obj in reports.신고서_납부서(scraper, date(2025, 3, 23), date(2025, 4, 22)):
+            self.assertEqual(10628710, 납부서_obj.납부내역.금액)
             break

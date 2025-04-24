@@ -278,6 +278,9 @@ class 고지내역:
 
 
 @dataclass(kw_only=True)
-class 납부서(납부내역):
+class 전자신고_신고서_납부서(HometaxModel):
     납세자: 납세자
-    pdf: BytesIO
+    # 신고내역: 전자신고결과조회
+    신고서_data: dict
+    납부내역: 납부내역
+    납부서_pdf: BytesIO
