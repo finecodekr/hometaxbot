@@ -127,7 +127,8 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date) -> Gene
         신고서_data = clip_data(scraper, 신고서_clip_uid)
 
         납세자_obj = models.납세자(
-            납세자번호=신고서_data['pageList'][0]['d'][0]['b'][0][1][2][6][27][3][2]['a'].split(',')[0],
+            # 납세자번호=신고서_data['pageList'][0]['d'][0]['b'][0][1][2][6][27][3][2]['a'].split(',')[0],
+            납세자번호=item['txprNo'],
             납세자명=item['txprNm']
         )
 
