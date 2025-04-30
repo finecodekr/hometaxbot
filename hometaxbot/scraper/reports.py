@@ -97,7 +97,8 @@ def 고지내역(scraper: HometaxScraper, begin: date, end: date) -> Generator[m
         yield model_from_hometax_json(models.고지내역, element)
 
 
-def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date) -> Generator[models.전자신고_신고서_납부서, None, None]:
+def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
+            page_begin=1, page_end: int = None) -> Generator[models.전자신고_신고서_납부서, None, None]:
     scraper.request_permission(screen_id='UTERNAAZ91')
     for item in scraper.paginate_action_json('ATERNABA016R01',
                                              'UTERNAAZ91',
@@ -121,7 +122,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date) -> Gene
                                                  "rtnCvaId": "",
                                                  "endBsno": "",
                                                  "gubun": "",
-                                             }):
+                                             }, page_begin=page_begin, page_end=page_end):
 
         신고서_clip_uid = clipreport_신고서(scraper, item['rtnCvaId'])
         신고서_data = clip_data(scraper, 신고서_clip_uid)

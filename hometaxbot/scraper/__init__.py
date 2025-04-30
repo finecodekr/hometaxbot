@@ -256,8 +256,9 @@ class HometaxScraper:
                                 headers={'Content-Type': 'application/json'}, timeout=20)
         return res.json()
 
-    def paginate_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None):
-        page = 1
+    def paginate_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None,
+                             page_begin=1, page_end=None):
+        page = page_begin
         while True:
             pageInfoVO = {
                 'pageNum': page, 'pageSize': self.PAGE_SIZE, 'totalCount': 0
@@ -275,6 +276,9 @@ class HometaxScraper:
 
             if data['pageInfoVO']['totalCount'] is None:
                 raise Exception(f'홈택스 응답 오류: {data}')
+
+            if page_end and page >= page_end:
+                return
 
             if page * self.PAGE_SIZE > data['pageInfoVO']['totalCount']:
                 return
