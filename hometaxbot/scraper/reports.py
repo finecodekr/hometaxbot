@@ -1,7 +1,8 @@
 import base64
 import json
 import re
-from datetime import date
+import time
+from datetime import date, datetime
 from io import BytesIO
 from typing import Generator
 
@@ -155,7 +156,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
                 'aliveReport': 'true',
                 'uid': clip_uid,
                 'clipUID': clip_uid,
-                's_time': 't341'
+                's_time': s_time()
             })
 
             res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
@@ -172,7 +173,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
                 'ClipID': 'R09S2',
                 'uid': clip_uid,
                 'clipUID': clip_uid,
-                's_time': 't535'
+                's_time': s_time()
             })
             with httpx.Client(http2=True, cookies=scraper.session.cookies) as client:
                 res = client.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
@@ -225,6 +226,11 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
                 )
 
 
+def s_time():
+    time.sleep(0.1)
+    return f't{datetime.now().microsecond // 1000}'
+
+
 def clipreport_param(item, cookie_TEHTsessionID):
     return json_minified_dumps({
         "options": {
@@ -266,7 +272,7 @@ def clipreport_param(item, cookie_TEHTsessionID):
             "itrfCd": "22",
             "itrfNm": "양도소득세",
             "itrfYm": item['itrfYm'],
-            "dcsClCd": "3",
+            "dcsClCd": item['dcsClCd'],
             "elctPmtPblNo": item['elctPmtPblNo'],
             "txprClsfCd": "02",
             "tin": item['pmtDutyTin'],
@@ -363,7 +369,7 @@ def clip_data(scraper: HometaxScraper, clip_uid: str):
         'ClipID': 'R03',
         'uid': clip_uid,
         'clipUID': clip_uid,
-        's_time': 't278'
+        's_time': s_time()
     })
 
     res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
