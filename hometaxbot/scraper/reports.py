@@ -99,7 +99,8 @@ def 고지내역(scraper: HometaxScraper, begin: date, end: date) -> Generator[m
 
 
 def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
-            page_begin=1, page_end: int = None) -> Generator[models.전자신고_신고서_납부서, None, None]:
+            page_begin=1, page_end: int = None,
+            taxpayer_id: str = '') -> Generator[models.전자신고_신고서_납부서, None, None]:
     scraper.request_permission(screen_id='UTERNAAZ91')
     for item in scraper.paginate_action_json('ATERNABA016R01',
                                              'UTERNAAZ91',
@@ -119,7 +120,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
                                                  "startBsno": "",
                                                  "stmnWrtMthdCd": "99",
                                                  "tin": "",
-                                                 "txprRgtNo": "",
+                                                 "txprRgtNo": taxpayer_id,
                                                  "rtnCvaId": "",
                                                  "endBsno": "",
                                                  "gubun": "",
