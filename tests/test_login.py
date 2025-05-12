@@ -34,7 +34,7 @@ class TestHometaxLogin(unittest.TestCase):
         self.assertEqual(scraper.selected_trader.사업자구분, 홈택스사용자구분코드.법인사업자)
         self.assertEqual(10, len(scraper.selected_trader.납세자번호))
         self.assertIsNotNone(scraper.selected_trader.사업장소재지)
-        self.assertIsNotNone(scraper.selected_trader.사업장전화번호)
+        self.assertIsNotNone(scraper.selected_trader.휴대전화번호)
         self.assertEqual(scraper.user_info.납세자번호, scraper.selected_trader.납세자번호)
         self.assertIsInstance(scraper.selected_trader.개업일, date)
 
