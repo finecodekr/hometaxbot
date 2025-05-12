@@ -44,6 +44,7 @@ class HometaxScraper:
         ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
         self.session = requests.session()
         self.session.mount('https://', CustomHttpAdapter(ctx))
+        self.session.headers['Content-Type'] = 'application/json'
 
     def login_with_cert(self, cert_paths: List[str], prikey_password):
         """
@@ -97,7 +98,7 @@ class HometaxScraper:
                                     "scrnId": 'UTXPPABA01&',
                                     "userScrnRslnXcCnt": 1680,
                                     "userScrnRslnYcCnt": 1050
-                                })
+                                }, headers={"content-type": "application/x-www-form-urlencoded; charset=UTF-8"})
         result_code = re.search(r"'code' : '(.)'", res.text).group(1)
         if result_code != self.LOGIN_SUCCESS_CODE:
             err_msg = re.search(r"'errMsg' : decodeURIComponent\('(.+?)'\)", res.text).group(1)
