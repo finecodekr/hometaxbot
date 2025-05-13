@@ -99,7 +99,12 @@ class HometaxScraper:
                                     "userScrnRslnXcCnt": 1680,
                                     "userScrnRslnYcCnt": 1050
                                 }, headers={"content-type": "application/x-www-form-urlencoded; charset=UTF-8"})
-        result_code = re.search(r"'code' : '(.)'", res.text).group(1)
+
+        result_code_match = re.search(r"'code' : '(.)'", res.text)
+        if result_code_match is None:
+            raise HometaxException(f'홈택스 서버 오류입니다. 홈택스 응답: {res.text}')
+
+        result_code = result_code_match.group(1)
         if result_code != self.LOGIN_SUCCESS_CODE:
             err_msg = re.search(r"'errMsg' : decodeURIComponent\('(.+?)'\)", res.text).group(1)
             unquoted = unquote_plus(err_msg).replace('+', ' ').replace('\\n', '\n')
