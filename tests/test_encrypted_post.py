@@ -11,7 +11,7 @@ from hometaxbot.scraper.servicecheck import deobfuscate_js, extract_vars
 
 class TestPostBodyEncryption(unittest.TestCase):
     def test_post_body_encryption(self):
-        with open(Path(__file__).parent / 'serviceCheck.do.20250514.js', 'r') as f:
+        with open(Path(__file__).parent / 'serviceCheck.do.20250515.js', 'r') as f:
             js = f.read()
 
         with open(Path(__file__).parent / 'serviceCheck.decoded.20250515.js', 'w') as f:
