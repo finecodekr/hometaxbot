@@ -20,6 +20,7 @@ dependencies = [
     "requests",
     "typer",
     "httpx[http2]",
+    "quickjs",
 ]
 [project.urls]
 Home = "https://github.com/finecodekr/hometaxbot"
