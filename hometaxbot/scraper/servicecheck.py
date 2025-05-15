@@ -1,6 +1,8 @@
+import hashlib
 import re
 import json
 import base64
+import urllib
 from urllib.parse import unquote
 
 def extract_vars(js: str) -> dict:
@@ -119,3 +121,34 @@ def deobfuscate_js(js: str, consts_key: str, consts: list[str], decoder_function
     final_js = string_concat_pattern.sub(concat_strings, deobfuscated_js)
 
     return final_js
+
+
+def encrypt_post_body(service_check_js: str, body: str) -> str:
+    m = re.search(r'"([A-Za-z0-9]+)" \+ "\&" \+ "([A-Za-z0-9]+)"', service_check_js)
+    signature_key = m.group(1)
+    payload_key = m.group(2)
+    print(signature_key, payload_key)
+
+
+def hometax_sign_post(payload: str, salt_prefix, salt_suffix):
+    """
+    JavaScript EvCrypto SHA-256 해시 계산 로직을
+    Python hashlib으로 재현한 함수.
+    1) payload를 percent-encoding
+    2) Base64 인코딩
+    3) PREFIX + payload + body_b64 + SUFFIX 결합
+    4) SHA-256 해시 → hex 문자열 반환
+    """
+    # 1) Percent-encode (JS의 encodeURIComponent과 동일)
+    encoded = urllib.parse.quote(payload, safe='')
+
+    # 2) Base64 인코딩 (JS의 btoa)
+    body_b64 = base64.b64encode(encoded.encode('utf-8')).decode('utf-8')
+
+    # 3) 솔트 앞뒤 + 원본 페이로드 + Base64 페이로드 결합
+    input_str = salt_prefix + payload + body_b64 + salt_suffix
+
+    # 4) SHA-256 해시 계산 → 16진수 문자열
+    h = hashlib.sha256()
+    h.update(input_str.encode('utf-8'))
+    return h.hexdigest()

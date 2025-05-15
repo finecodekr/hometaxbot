@@ -1,4 +1,5 @@
 import base64
+import re
 import textwrap
 import unittest
 from pathlib import Path
@@ -6,7 +7,7 @@ from urllib.parse import unquote
 
 import quickjs
 
-from hometaxbot.scraper.servicecheck import deobfuscate_js, extract_vars
+from hometaxbot.scraper.servicecheck import deobfuscate_js, extract_vars, encrypt_post_body
 
 
 class TestPostBodyEncryption(unittest.TestCase):
@@ -21,16 +22,14 @@ class TestPostBodyEncryption(unittest.TestCase):
             print(encoded_consts)
             consts = [unquote(base64.b64decode(const)) for const in encoded_consts]
             print(consts)
+            print(encoded_consts[consts.index('G4fmU6')])
             deobfuscated = deobfuscate_js(js, 
                                           consts_key=list(vars.keys())[2], 
                                           consts=consts, 
                                           decoder_function=decoder_function)
             f.write(deobfuscated)
 
-        context = quickjs.Context()
-        context.eval(polyfill)
-        context.eval(deobfuscated)
-            # crypto_keys, _, encoded_consts, _, uuid_load, uuid = vars.values()
+        encrypt_post_body(deobfuscated)
 
         body_source = '"{"befCallYn":"","dprtUserId":"","itrfCd":"22","mdfRtnPyppApplcCtl":"100202 410202 330202 100203 410203 310203 450202 220202 220203 320202 240202 240203 470202","ntplInfpYn":"Y","pubcUserNo":"100000000017404995","rtnDtEnd":"20250515","rtnDtSrt":"20250415","sbmsMatePubcPrslBrkdYn":"N","scrnId":"UTERNAAZ91","startBsno":"","stmnWrtMthdCd":"99","tin":"","txprRgtNo":"","rtnCvaId":"","endBsno":"","gubun":"","resultCnt":"0","pageSize":"0","pageNum":"0","pageInfoVO":{"pageNum":"1","pageSize":"10","totalCount":"10034"}}<nts<nts>nts>42Mct9RUg0bv7qTuyhefPDoXFmbtdWD5ph6mZeFE4cU31"'
         body_encrypted = 'G4fmU6=VUr3xDOC09IfIuc50ndJdNaOvQtjS10Bve0Md5OTF9xA7hxUC9xlt9xUvurO0bCTLNo0L9xUv9xAtpxUv9xUv9xUtUxUvu7jin7ci5cUpDtOvZIOvQeOvZIOvZIOvbvOvZrEd1rut5tOvZIOvQeOvZIUv9xUv9xUtUxUvu4b0OrQLO6Bi166i16gaQCQLhxUv9xAtpxUvZejvKIjv9xUvKtovKIjv9xUvKvAvKIjv9xUvKejvKIjvUxUvKtovKIjvUxUvKvovKIjvUxUvKt4vKIjv9xUvKIUvKIjv9xUvKIUvKIjvUxUvKvUvKIjv9xUvKIQvKIjv9xUvKIQvKIjvUxUvKtlvKIjv9xUv9xUtUxUvuBQiNorLu0jDDXOvZIOvQeOvZr0rqIUrqrKrqIUi1c9a4cA0HrSLUxUv9xAtpxUvZejvKmjvKmjvKmoCAtjCKbBCpxUv9xUtUxUvnrQLb7Q7DBbrqIUrqC6rqIUvZmUCqm4vqxOvZIOvbvOvZrUdNBedMCUdhxUv9xAtpxUvZIjvZxjCKe4rqIUrqrKrqIUi5rsiQ4TdNctdDrZx1rALerUF570L9xUv9xAtpxUvbXOvZIOvbvOvZrAalrzpDtOvZIOvQeOvZrccecpqbM6DZborqIUrqrKrqIUil7Tin7hi5B3rqIUrqC6rqIUrqIUrqrKrqIUil7sLOdUde4QFN7K0hxUv9xAtpxUvZbBrqIUrqrKrqIUdNOzrqIUrqC6rqIUrqIUrqrKrqIUd1TjiOrndeB3rqIUrqC6rqIUrqIUrqrKrqIUin7ztl0TpDtOvZIOvQeOvZIOvZIOvbvOvZrOLu7hi5B3rqIUrqC6rqIUrqIUrqrKrqIU0lc9dDXOvZIOvQeOvZIOvZIOvbvOvZrU0HC4L17KLntOvZIOvQeOvZIjrqIUrqrKrqIUiNMn0cCEVuxOvZIOvQeOvZIjrqIUrqrKrqIUiNMn0xB4LpxUv9xAtpxUvZmOvZIOvbvOvZrjaDdOpDBuL40PrqIUrqC6rqdhrqIUiNMn0xB4LpxUv9xAtpxUvZeOvZIOvbvOvZrjaDdOx5Of0pxUv9xAtpxUvZejrqIUrqrKrqIUdNWQaDoKLlczdhxUv9xAtpxUvZejvKvQrqIUrqderqderqCKLn7ArqCKLn7ArqCMLn7ArqCMCKrCaltBxOcnvNr5ClMxdHOw0D0t7NWa7u49dN7H7KcjFK0sDucN7q7ZcqvoI9j9qccwpDb9SOsyInt9S9I9RhrwIZw9I9j9aHv9SOsdJcQgIb4RSDIXihIfIurpCQTQixCeqxoYCDr5ietlSMtlDnTha4rH0uoqF9rW&Rfb86Os1z=p8pcaEYQpT40LieCaAJoLJdyr137gkS9gk6qgka2gk6bZcdcxq3It3FDgk6bgkSugk6bgk6bgkgigk6bpWuba3d0p8ggp24bwT40xB4bwT4bwT4bxb4bwcFQscpip24bwT40xB4bwf6bgk6bgkgigk6bt1Lc4ALD4WFos93osUPfxyLIgk6bgkSugk6bwkeowfebgk6oSi9owfebgk6ow0wowfebgk6owkeowfe0gk6oSi9owfe0gk6ow09owfe0gk6oSi4owfebgk6owf6owfebgk6owf6owfe0gk6ow06owfebgk6owfxowfebgk6owfxowfe0gk6oSisowfebgk6bgkgigk6btALot9FDpAuptT4bwT40xB4bwFJFwf6FwJwFwfgoa1gfd8SFsJjzgk6bgkSugk6bwkeowieowieowi9ySieQVkJEgk6bgkgigk6bsALDLWL3tcxFwf6FwQ9Fwf6bwi6Ewi4PSB4bwT4bxb4bwAgQtJLQ4ygQgk6bgkSugk6bwfebSkeQwk4Fwf6FwJwFwfg0ZcE0k13QpduEZcSxsASIxAgKp3FDgk6bgkSugk6bkT4bwT4bxb4bwASfscjgp24bwT40xB4bwFd4LdgVx43rVk9Fwf6FwJwFwfg0aU3ba9g0tc5Fwf6FwQ9Fwf6Fwf6FwJwFwfg0aUEDdygQk8LMp9SJgk6bgkSugk6bVkJFwf6FwJwFwfgQr1CFwf6FwQ9Fwf6Fwf6FwJwFwfgQnWub4caQkc5Fwf6FwQ9Fwf6Fwf6FwJwFwfgbaUjiac3gp24bwT40xB4bwT4bwT4bxb4bwcdDp9g0tc5Fwf6FwQ9Fwf6Fwf6FwJwFwfgAa1gEtT4bwT40xB4bwT4bwT4bxb4bwAgFsydIa9SDa24bwT40xB4bwfeFwf6FwJwFwfgoZ1aF4qFXpB4bwT40xB4bwfeFwf6FwJwFwfgoZ1aFkAdGgk6bgkSugk6bw24bwT4bxb4bwAuhpqdgtcpzdJ5Fwf6FwQ9FSQ6FwfgoZ1aFkAdGgk6bgkSugk6bwB4bwT4bxb4bwAuhpqdkr8OFgk6bgkSugk6bwkeFwf6FwJwFwfgQtyLht9Sza1jQgk6bgkSugk6bwkeow0xFwf6FSQxFSQxFwQSDaWwFwQSDaWwFwQdDaWwFwQ4QwJEfaiFBd1soZAZysdLEn1hFpFu9tEhUt1gQp3a9S8uMScErp4p3SUSdw09%253D'
