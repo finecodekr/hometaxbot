@@ -547,7 +547,8 @@ class HometaxScraper:
                 "athCd": "Y",
                 "menuId": "",
                 "prevMenuId": "",
-                "menuTtl": ""}) + '<nts<nts>nts>32k8yZmB2hWqWIwyDqt5v50oHY58M4RpVphs78jPDZg21'
+                "menuTtl": ""}) + '<nts<nts>nts>32k8yZmB2hWqWIwyDqt5v50oHY58M4RpVphs78jPDZg21',
+            headers={'Content-Type': 'application/json'}
         )
         if res.json()['resultMsg']['result'] != self.LOGIN_SUCCESS_CODE:
             raise AuthenticationFailed('홈택스에 로그인되지 않은 상태입니다.')
