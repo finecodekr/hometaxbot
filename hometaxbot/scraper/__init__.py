@@ -44,7 +44,7 @@ class HometaxScraper:
         ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
         self.session = requests.session()
         self.session.mount('https://', CustomHttpAdapter(ctx))
-        self.session.headers['Content-Type'] = 'application/json'
+        # self.session.headers['Content-Type'] = 'application/json'
 
     def login_with_cert(self, cert_paths: List[str], prikey_password):
         """
@@ -59,7 +59,8 @@ class HometaxScraper:
         self.session.post('https://hometax.go.kr/wqAction.do?actionId=ATXPPCBA001R020&screenId=UTXPPABA01&popupYn=false', json={"scrnId": "0900000000", "pageInfoVO": {"totalCount" : "0", "pageSize" : "10", "pageNum" : "1"} })
 
         res = self.session.post("https://www.hometax.go.kr/wqAction.do?actionId=ATXPPZXA001R01&screenId=UTXPPABA01",
-                                data=f"{{}}{nts}dGGBLG2rRWBeuYMviAZyJjAphI9Y3wCmWhg1y84EU{nts - 11}")
+                                data=f"{{}}{nts}dGGBLG2rRWBeuYMviAZyJjAphI9Y3wCmWhg1y84EU{nts - 11}",
+                                headers={'Content-Type': 'application/json'})
         if res.status_code == HTTPStatus.NOT_FOUND:
             raise HometaxException('홈택스 서버에 접속할 수 없습니다. 잠시 후 다시 시도해주세요.')
         pckEncSsn = res.json()['pkcEncSsn']
