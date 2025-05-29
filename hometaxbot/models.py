@@ -14,6 +14,14 @@ class 홈택스사용자구분코드(Enum):
     법인사업자 = '03'
 
 
+class 세목코드(Enum):
+    종합소득세 = '10'
+    원천세 = '14'
+    양도소득세 = '22'
+    법인세 = '31'
+    부가세 = '41'
+
+
 @dataclass(kw_only=True)
 class 홈택스사용자(HometaxModel):
     납세자번호: str
@@ -70,6 +78,7 @@ class 세무대리수임정보:
 class 전자신고결과조회(HometaxModel):
     접수번호: str
     세무서코드: str
+    세목코드: 세목코드
     신고서종류: str # 예시: 원천징수이행상황신고서
     신고서종류코드: str  # 예시: F01
     신고구분코드: str  # 예시: 01
