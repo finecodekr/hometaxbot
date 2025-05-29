@@ -64,3 +64,12 @@ class TestScrape(unittest.TestCase):
 
         for report in reports.세금신고내역_법인세(scraper, date(2024, 5, 1), date(2025, 4, 1)):
             print(report)
+
+    def test_신고서_data_for_pdf(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
+
+        for report in reports.세금신고내역_부가가치세(scraper, date(2024, 5, 1), date(2025, 4, 1)):
+            clip_uid = reports.clipreport_uid(scraper, report.세목코드, report.접수번호)
+            data = reports.clip_data(scraper, clip_uid)
+            print(data)

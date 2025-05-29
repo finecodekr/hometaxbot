@@ -5,11 +5,12 @@ import time
 from datetime import date, datetime
 from io import BytesIO
 from typing import Generator
+from urllib.parse import unquote
 
 import dateutil.parser
 import httpx
 
-from hometaxbot import models
+from hometaxbot import models, HometaxException
 from hometaxbot.scraper import HometaxScraper, model_from_hometax_json, json_minified_dumps
 
 
@@ -22,7 +23,7 @@ def 전자신고결과조회(scraper: HometaxScraper, begin: date, end: date):
                 json={
                     "befCallYn": "",
                     "itrfCd": 세목코드,
-                    "mdfRtnPyppApplcCtl": "100202 410202 330202 100203 410203 310203 450202 220202 220203 320202 240202 240203",
+                    "mdfRtnPyppApplcCtl": "100202 410202 330202 100203 410203 310203 450202 220202 220203 320202 240202 240203 470202",
                     "ntplInfpYn": "Y",
                     "pubcUserNo": scraper.pubcUserNo,
                     "rtnDtEnd": end.strftime("%Y%m%d"),
@@ -157,7 +158,7 @@ def 고지내역(scraper: HometaxScraper, begin: date, end: date) -> Generator[m
         yield model_from_hometax_json(models.고지내역, element)
 
 
-def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
+def 신고서_납부서(scraper: HometaxScraper, 세목: models.세목코드, begin: date, end: date,
             page_begin=1, page_end: int = None,
             taxpayer_id: str = '') -> Generator[models.전자신고_신고서_납부서, None, None]:
     scraper.request_permission(screen_id='UTERNAAZ91')
@@ -168,7 +169,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
                                              json={
                                                  "befCallYn": "",
                                                  "dprtUserId": "",
-                                                 "itrfCd": "22",
+                                                 "itrfCd": 세목.value,
                                                  "mdfRtnPyppApplcCtl": "",
                                                  "ntplInfpYn": "Y",
                                                  "pubcUserNo": scraper.pubcUserNo,
@@ -185,8 +186,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
                                                  "gubun": "",
                                              }, page_begin=page_begin, page_end=page_end):
 
-        신고서_clip_uid = clipreport_신고서(scraper, item['rtnCvaId'])
-        신고서_data = clip_data(scraper, 신고서_clip_uid)
+        신고서_data = clip_data(scraper, clipreport_uid(scraper, 세목, item['rtnCvaId']))
 
         납세자_obj = models.납세자(
             # 납세자번호=신고서_data['pageList'][0]['d'][0]['b'][0][1][2][6][27][3][2]['a'].split(',')[0],
@@ -197,7 +197,7 @@ def 신고서_납부서(scraper: HometaxScraper, begin: date, end: date,
         bills_data = scraper.request_action_json('ATERNZZZ005R01', 'UTERNAAZ70', subdomain='teht', json={
             "pubcUserNo": "0",
             "rtnCvaId": item['rtnCvaId'],
-            "itrfCd": "22", "txprNo": "", "txprNm": "", "rcatDtm": "", "gubun": "4", "trtpDdt": "", "rcatNo": "",
+            "itrfCd": 세목.value, "txprNo": "", "txprNm": "", "rcatDtm": "", "gubun": "4", "trtpDdt": "", "rcatNo": "",
             "regNo": "", "txamtYn": ""})
         for bill in bills_data['elctPntPblNoInqrDVOList']:
             res = scraper.session.post('https://sesw.hometax.go.kr/serp/clipreport.do', data={
@@ -367,7 +367,28 @@ def clipreport_param(item, cookie_TEHTsessionID):
     })
 
 
-def clipreport_신고서(scraper: HometaxScraper, 신고서번호: str):
+def clipreport_uid(scraper: HometaxScraper, 세목: models.세목코드, 접수번호: str):
+    res = scraper.request_permission(screen_id='UTERNAAZ34')
+    res = scraper.session.post('https://teht.hometax.go.kr/permission.do?realScreenId=UTESFZAA01', json={})
+    res = scraper.request_action_json('ATTRNZZZ020R01', 'UTERNAAZ34', popup_yn='true', json={
+        "bsafClCd": "004",
+        "itrfCd": 세목.value,
+        "ldgrRptPgmId": "",
+        "ntplInfpYn": "",
+        "pageNum": "",
+        "rcatDtm": "",
+        "rptDataPageInfoYn": "",
+        "rptInqrCl": "02",
+        "rtnCvaId":접수번호
+    })
+    report_params = res['rtnBscAdmDVOList'][0]
+    format_code = report_params['frmlCd']
+    format_name = report_params['frmlNm']
+    report_action_id = report_params['ldgrRptExctId']
+    report_filename = '/tt' + report_params['ldgrRptPgmId']
+    type_code = report_params['rtnSbmsTypeCd']
+
+    res = scraper.session.get('https://hometax.go.kr/websquare/popup.html?w2xPath=https://teht.hometax.go.kr/ui/rn/z/UTERNAAZ34.xml&popupID=mf_wfHeader_UTXPPBAD23_wframe_contNon_UTERNAAZ34&w2xHome=/ui/pp/&w2xDocumentRoot=')
     res = scraper.session.post('https://sesw.hometax.go.kr/serp/clipreport.do', data={
         'param': json_minified_dumps({
             "options": {
@@ -380,21 +401,22 @@ def clipreport_신고서(scraper: HometaxScraper, 신고서번호: str):
                 },
                 "exports": {},
                 "fileNames": {
-                    "all": "양도소득과세표준 신고 및 납부계산서"
+                    # "all": "양도소득과세표준 신고 및 납부계산서"
+                    "all": format_name
                 },
                 "removeChar": True,
                 "renderingMode": "client"
             },
             "type": "S",
-            "fileName": "/tt/rn/a/a/RTIRNAA508",
+            "fileName": report_filename,
             "reqParams": {
-                "rtnCvaId": "202504810000004390869663",
+                "rtnCvaId": 접수번호,
                 "rptInqrCl": "11",
-                "frmlCd": "C116300",
+                "frmlCd": format_code,
                 "rptDataPageInfoYn": "N",
                 "pageNum": "1",
                 "ntplInfpYn": "Y",
-                "actionId": "ATTRNABA108P01",
+                "actionId": report_action_id,
                 "screenId": "UTERNAAZ34",
                 "voSepChar": "|",
                 "dataSepChar": ",",
@@ -403,7 +425,7 @@ def clipreport_신고서(scraper: HometaxScraper, 신고서번호: str):
                 "b": "49O4EFVTuvmd8hGce6rQXv6UqzVqLVnCPYZEcAdnbDv6M34",
                 "bb": "4NEtRlyrwnOQlAGo4r3imJ9PvSJnjGbTsU9pkVDLBE"
             },
-            "actionId": "ATTRNABA108P01",
+            "actionId": report_action_id,
             "rptSort": "HTML",
             "viewType": "frame",
             "frameName": "iframe2_UTERNAAZ34",
@@ -421,22 +443,41 @@ def clipreport_신고서(scraper: HometaxScraper, 신고서번호: str):
     if match:
         return match.group(1)
     else:
-        raise Exception('clip uid not found', res.text)
+        raise HometaxException('clip uid not found', res.text)
 
 
 def clip_data(scraper: HometaxScraper, clip_uid: str):
-    res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
-        'ClipID': 'R03',
-        'uid': clip_uid,
-        'clipUID': clip_uid,
-        's_time': s_time()
-    })
+    """홈택스에서 PDF 신고서를 렌더링하기 위해 가져오는 데이터. 아직 제대로 동작하지 않고 빈 신고서 데이터로 온다."""
+    for i in range(4):
+        res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
+            'ClipID': 'R03',
+            'uid': clip_uid,
+            'clipUID': clip_uid,
+            's_time': s_time()
+        })
+        if "'endReport':true" in res.text:
+            break
+    else:
+        raise HometaxException(f'Report is not ready: {res.text}')
 
     res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
         'uid': clip_uid,
         'clipUID': clip_uid,
         'ClipType': 'DocumentPageView',
         'ClipData': json_minified_dumps({"reportkey": clip_uid, "isMakeDocument": True, "pageMethod": 0}),
-    })
+    }, headers={'Referer': 'https://sesw.hometax.go.kr/serp/clipreport.do'})
+    return parse_report_data(res.json()['resValue']['viewData'])
 
-    return json.loads(base64.b64decode(res.json()['resValue']['viewData']))
+
+def parse_report_data(encoded: str):
+    return unquote_values(json.loads(base64.b64decode(encoded)))
+
+
+def unquote_values(data: dict | list):
+    if isinstance(data, dict):
+        return {k: unquote_values(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [unquote_values(item) for item in data]
+    elif isinstance(data, str):
+        return unquote(data)
+    return data
