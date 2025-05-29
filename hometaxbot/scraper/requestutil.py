@@ -116,4 +116,4 @@ def get_quarter_by_date(date):
 
 
 def json_minified_dumps(obj):
-    return json.dumps(obj, separators=(',', ':'))
+    return json.dumps(obj, separators=(',', ':'), ensure_ascii=False)
