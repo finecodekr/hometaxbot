@@ -411,7 +411,7 @@ def clipreport_uid(scraper: HometaxScraper, 세목: models.세목코드, 접수�
             "fileName": report_filename,
             "reqParams": {
                 "rtnCvaId": 접수번호,
-                "rptInqrCl": "11",
+                "rptInqrCl": "02",
                 "frmlCd": format_code,
                 "rptDataPageInfoYn": "N",
                 "pageNum": "1",
@@ -449,6 +449,7 @@ def clipreport_uid(scraper: HometaxScraper, 세목: models.세목코드, 접수�
 def clip_data(scraper: HometaxScraper, clip_uid: str):
     """홈택스에서 PDF 신고서를 렌더링하기 위해 가져오는 데이터. 아직 제대로 동작하지 않고 빈 신고서 데이터로 온다."""
     for i in range(4):
+        time.sleep(1)
         res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
             'ClipID': 'R03',
             'uid': clip_uid,
