@@ -39,7 +39,7 @@
     dcsTxamt: # 0
     stmnWrtMthdCd: # 03
     cvaAgnRltCdNm: # 세무대리인
-    itrfCd: # 14
+    itrfCd: 세목코드  # 14
     paygSchuTxamt: # 0
     fnftxSbtrScpmTxamt: # 0
     ogntxSbtrScpmTxamt: 금액 # 503580

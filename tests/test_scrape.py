@@ -1,9 +1,7 @@
 import unittest
 from datetime import date
 from decimal import Decimal
-from typing import List
 
-from hometaxbot.models import 전자신고결과조회
 from hometaxbot.scraper import HometaxScraper, reports, transactions
 from tests import testdata
 
@@ -53,3 +51,16 @@ class TestScrape(unittest.TestCase):
         self.assertEqual(50, len(results))
         self.assertNotEqual(results[1], results[11])
         self.assertGreater(results[0].총금액, 0)
+
+    def test_scrape_세금신고내역(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
+
+        for report in reports.세금신고내역_원천세(scraper, date(2024, 5, 1), date(2025, 4, 1)):
+            self.assertEqual(16500, report.납부금액)
+
+        for report in reports.세금신고내역_부가가치세(scraper, date(2024, 5, 1), date(2025, 4, 1)):
+            print(report)
+
+        for report in reports.세금신고내역_법인세(scraper, date(2024, 5, 1), date(2025, 4, 1)):
+            print(report)

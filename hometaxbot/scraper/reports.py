@@ -42,6 +42,65 @@ def 전자신고결과조회(scraper: HometaxScraper, begin: date, end: date):
             yield model_from_hometax_json(models.전자신고결과조회, element)
 
 
+def 세금신고내역(scraper: HometaxScraper, begin: date, end: date):
+    yield from 세금신고내역_부가가치세(scraper, begin, end)
+    yield from 세금신고내역_법인세(scraper, begin, end)
+    yield from 세금신고내역_원천세(scraper, begin, end)
+
+
+def 세금신고내역_부가가치세(scraper: HometaxScraper, begin: date, end: date):
+    scraper.request_permission(screen_id='UTXPPBAA71')
+    data = scraper.request_action_json('ATXPPBAA001R030', 'UTXPPBAA71', json={
+        "crpBmanAthYn": "Y",
+        "ntplBmanAthYn": "N",
+        "rtnDtEnd": end.strftime("%Y%m%d"),
+        "rtnDtSrt": begin.strftime("%Y%m%d"),
+        "tin": scraper.tin,
+        "userClsfCd": scraper.user_info.사용자구분.value,
+        "bmanBscInfrInqrDVOList":[]
+    })
+
+    for item in data[next(k for k in data if k.endswith('VOList'))]:
+        report = model_from_hometax_json(models.전자신고결과조회, item)
+        report.세목코드 = models.세목코드.부가세
+        yield report
+
+
+def 세금신고내역_원천세(scraper: HometaxScraper, begin: date, end: date):
+    scraper.request_permission(screen_id='UTXPPBAA73')
+    data = scraper.request_action_json('ATXPPBAA001R019', 'UTXPPBAA73', json={
+        "survTtl": "",
+        "sbmsYr": "",
+        "tin": scraper.tin,
+        "itrfCd": "",
+        "rtnDtSrt": begin.strftime("%Y%m%d"),
+        "rtnDtEnd": end.strftime("%Y%m%d"),
+    })
+    for item in data[next(k for k in data if k.endswith('VOList'))]:
+        report = model_from_hometax_json(models.전자신고결과조회, item)
+        report.세목코드 = models.세목코드.원천세
+        # data = clip_data(scraper, clipreport_신고서(scraper, report.세목코드, report.접수번호))
+        yield report
+
+
+def 세금신고내역_법인세(scraper: HometaxScraper, begin: date, end: date):
+    scraper.request_permission(screen_id='UTXPPBAB66')
+    data = scraper.request_action_json('ATXPPBAA003R01', 'UTXPPBAB66', json={
+        "rtnDtSrt": begin.strftime("%Y%m%d"),
+        "rtnDtEnd": end.strftime("%Y%m%d"),
+        "tin": scraper.tin,
+        "blrdNo":"",
+        "tbbsClsfCd":"",
+        "strtDt":"",
+        "endDt":"",
+        "schType":"",
+        "schCntn":""})
+    for item in data[next(k for k in data if k.endswith('VOList'))]:
+        report = model_from_hometax_json(models.전자신고결과조회, item)
+        report.세목코드 = models.세목코드.법인세
+        yield report
+
+
 def 납부내역(scraper: HometaxScraper, begin: date, end: date) -> Generator[models.납부내역, None, None]:
     scraper.request_permission('teht')
     for element in scraper.paginate_action_json(

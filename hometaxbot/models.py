@@ -77,25 +77,25 @@ class 세무대리수임정보:
 @dataclass(kw_only=True)
 class 전자신고결과조회(HometaxModel):
     접수번호: str
-    세무서코드: str
+    세무서코드: str = None
     세목코드: 세목코드
     신고서종류: str # 예시: 원천징수이행상황신고서
-    신고서종류코드: str  # 예시: F01
-    신고구분코드: str  # 예시: 01
-    신고구분상세코드: str  # 예시: 01
+    신고서종류코드: str = None  # 예시: F01
+    신고구분코드: str = None  # 예시: 01
+    신고구분상세코드: str = None  # 예시: 01
     신고구분: str  # 예시: 정기(확정)
     신고유형: str  # 예시: 정기신고
     과세연월: str
-    과세기간시작일: date  # 예시: 20191101
-    과세기간종료일: date  # 예시: 20191130
+    과세기간시작일: date = None  # 예시: 20191101
+    과세기간종료일: date = None  # 예시: 20191130
     지급연월: str = None
     접수일: date
-    접수일시: datetime  # 예시: 20191203145924
-    접수여부_첨부서류: str  # 예시: 정상(1종)
-    홈택스ID: str
-    납세자명: str
-    납세자번호: str
-    업종코드: str
+    접수일시: datetime = None  # 예시: 20191203145924
+    접수여부_첨부서류: str = None  # 예시: 정상(1종)
+    홈택스ID: str = None
+    납세자명: str = None
+    납세자번호: str = None
+    업종코드: str = None
     공급가액: Decimal  # 예시: 10500000
     금액: Decimal
     납부금액: Decimal
