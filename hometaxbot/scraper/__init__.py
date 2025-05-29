@@ -44,6 +44,9 @@ class HometaxScraper:
         ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
         self.session = requests.session()
         self.session.mount('https://', CustomHttpAdapter(ctx))
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        })
         # self.session.headers['Content-Type'] = 'application/json'
 
     def login_with_cert(self, cert_paths: List[str], prikey_password):
@@ -253,11 +256,11 @@ class HometaxScraper:
                                    payload=payload.encode('utf8'),
                                    content_type='application/xml; charset=UTF-8')
 
-    def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None, nts_postfix=True):
+    def request_action_json(self, action_id, screen_id, json: dict, real_screen_id='', popup_yn='false', subdomain: str = None, nts_postfix=True):
         # TODO 응답 오류 처리
         # 오류 예시: {'resultMsg': {'detailMsg': '', 'msg': '6개월이상은 조회할 수 없습니다. \n 조회에 실패 실패하였습니다.', 'exceptType': 'APPLICATION', 'serviceTxId': 'PTEET1103_ATEETBDA001R01_T00799_1731908564438', 'detailLogYn': 'N', 'code': 'ETICMZ0008', 'result': 'F'}}
         res = self.session.post(f'https://{subdomain + '.' if subdomain else ''}hometax.go.kr/wqAction.do',
-                                params={"actionId": action_id, "screenId": screen_id, "popupYn": "false",
+                                params={"actionId": action_id, "screenId": screen_id, "popupYn": popup_yn,
                                          "realScreenId": real_screen_id},
                                 data=self.nts_postfix_added(json) if nts_postfix else json_minified_dumps(json),
                                 headers={'Content-Type': 'application/json'}, timeout=20)
