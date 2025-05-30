@@ -16,6 +16,7 @@ from xml.etree.ElementTree import Element
 import requests
 import yaml
 from cryptography.hazmat.primitives._serialization import Encoding
+from requests import JSONDecodeError
 
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
@@ -264,7 +265,14 @@ class HometaxScraper:
                                          "realScreenId": real_screen_id},
                                 data=self.nts_postfix_added(json) if nts_postfix else json_minified_dumps(json),
                                 headers={'Content-Type': 'application/json'}, timeout=20)
-        return res.json()
+        try:
+            data = res.json()
+            if data['resultMsg']['result'] != self.LOGIN_SUCCESS_CODE:
+                raise HometaxException(data['resultMsg']['detailMsg'] or data['resultMsg']['msg'])
+            return data
+        except JSONDecodeError as e:
+            raise HometaxException(f'홈택스 응답오류: {res.text}')
+
 
     def paginate_action_json(self, action_id, screen_id, json: dict, real_screen_id='', subdomain: str = None,
                              page_begin=1, page_end=None):
