@@ -283,7 +283,7 @@ class HometaxScraper:
             }
             data = self.request_action_json(action_id, screen_id,
                                             json | {'pageInfoVO': pageInfoVO},
-                                            real_screen_id, subdomain)
+                                            real_screen_id, subdomain=subdomain)
             try:
                 yield from data[next(k for k in data if k.endswith('VOList'))]
             except StopIteration:
