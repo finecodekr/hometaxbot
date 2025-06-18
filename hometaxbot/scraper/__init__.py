@@ -49,6 +49,7 @@ class HometaxScraper:
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
         })
         # self.session.headers['Content-Type'] = 'application/json'
+        self.cta_admin_no = None
 
     def login_with_cert(self, cert_paths: List[str], prikey_password):
         """
@@ -563,6 +564,8 @@ class HometaxScraper:
         )
         if res.json()['resultMsg']['result'] != self.LOGIN_SUCCESS_CODE:
             raise AuthenticationFailed('홈택스에 로그인되지 않은 상태입니다.')
+
+        self.cta_admin_no = ctn_no
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:
