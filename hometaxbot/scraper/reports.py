@@ -380,7 +380,7 @@ def clipreport_uid(scraper: HometaxScraper, 세목: models.세목코드, 접수�
         "rptDataPageInfoYn": "",
         "rptInqrCl": "02",
         "rtnCvaId":접수번호
-    })
+    }, subdomain='teht')
     report_params = res['rtnBscAdmDVOList'][0]
     format_code = report_params['frmlCd']
     format_name = report_params['frmlNm']
