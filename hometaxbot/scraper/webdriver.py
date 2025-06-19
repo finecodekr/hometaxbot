@@ -83,6 +83,8 @@ class HometaxDriver:
         except:
             pass
 
+        self.driver.switch_to.default_content()
+
     def wait_for_blockui_disappeared(self, delay=WAIT_LONG):
         WebDriverWait(self.driver, delay).until(
             expected_conditions.presence_of_element_located((By.CLASS_NAME, 'blockUI')))
