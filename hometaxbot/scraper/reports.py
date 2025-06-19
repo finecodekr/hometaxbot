@@ -448,6 +448,7 @@ def clipreport_uid(scraper: HometaxScraper, 세목: models.세목코드, 접수�
 
 def clip_data(scraper: HometaxScraper, clip_uid: str):
     """홈택스에서 PDF 신고서를 렌더링하기 위해 가져오는 데이터. 아직 제대로 동작하지 않고 빈 신고서 데이터로 온다."""
+    page_count = 0
     for i in range(4):
         time.sleep(1)
         res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
@@ -456,18 +457,31 @@ def clip_data(scraper: HometaxScraper, clip_uid: str):
             'clipUID': clip_uid,
             's_time': s_time()
         })
-        if "'endReport':true" in res.text:
+        res_json = json.loads(res.text.strip("()").replace("'", '"'))
+        if res_json['endReport']:
+            page_count = res_json['count'] - 1
             break
     else:
         raise HometaxException(f'Report is not ready: {res.text}')
+    parsed_data = []
+    for pageMethod in range(page_count + 1):
+        res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
+            'uid': clip_uid,
+            'clipUID': clip_uid,
+            'ClipType': 'DocumentPageView',
+            'ClipData': json_minified_dumps({"reportkey": clip_uid, "isMakeDocument": True, "pageMethod": pageMethod}),
+        }, headers={'Referer': 'https://sesw.hometax.go.kr/serp/clipreport.do'})
+        viewData = extract_abc_only_obj(parse_report_data(res.json()['resValue']['viewData']))
 
-    res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
-        'uid': clip_uid,
-        'clipUID': clip_uid,
-        'ClipType': 'DocumentPageView',
-        'ClipData': json_minified_dumps({"reportkey": clip_uid, "isMakeDocument": True, "pageMethod": 0}),
-    }, headers={'Referer': 'https://sesw.hometax.go.kr/serp/clipreport.do'})
-    return parse_report_data(res.json()['resValue']['viewData'])
+        i = 0
+        while i < len(viewData):
+            obj = viewData[i]
+            if 'a' in obj and isinstance(obj['a'], str):
+                split_values = obj['a'].split(',')
+                obj['a'] = split_values
+                parsed_data.append(obj['a'])
+                i += 1
+    return parsed_data
 
 
 def parse_report_data(encoded: str):
@@ -482,3 +496,41 @@ def unquote_values(data: dict | list):
     elif isinstance(data, str):
         return unquote(data)
     return data
+
+
+def extract_abc_only_obj(data):
+    result = []
+
+    def recursive_search(obj):
+        if isinstance(obj, dict):
+            if set(obj.keys()) == {"a", "b", "c"}:
+                result.append(obj)
+            for value in obj.values():
+                recursive_search(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                recursive_search(item)
+
+    recursive_search(data)
+    return result
+
+
+def get_원천세_연말정산금액(data):
+    연말정산지급금액 = 0
+    collecting_data = False
+
+    for i, row in enumerate(data):
+        if row and re.fullmatch(r"A\d{2}", row[0]):
+            if row[0] == 'A04':
+                collecting_data = True
+            elif row[0] == 'A05':
+                collecting_data = False
+                break
+
+        # A04와 A05 사이의 데이터 처리
+        if collecting_data and row and len(row) > 0 and row[0] != ' ':
+            if not (row[0] == 'A04' or row[0] == '분납신청'):
+                if len(row) == 12:
+                    연말정산지급금액 = row[3]
+
+    return 연말정산지급금액
