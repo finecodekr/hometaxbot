@@ -48,10 +48,10 @@ class HometaxDriver:
 
         self.wait_loading()
         WebDriverWait(self.driver, 10).until(lambda locator: self.driver.execute_script('return Boolean(window.WebSquare.uiplugin.editor)'))
-        self.wait(By.ID, 'txppIframe')
         while True:
             try:
-                self.switch_to_txpp_frame()
+                WebDriverWait(self.driver, WAIT_SHORT).until_not(
+                    expected_conditions.presence_of_element_located((By.CLASS_NAME, 'blockUI')))
                 self.wait_and_click(By.XPATH, './/i[text()[contains(., "공동·금융인증서")]]/../..')
                 self.wait(By.ID, 'dscert', delay=WAIT_SHORT)
                 self.driver.switch_to.frame('dscert')
@@ -68,11 +68,13 @@ class HometaxDriver:
                 pass
 
         self.wait_for_blockui_disappeared()
-        self.driver.find_element(By.ID, 'filefile2')
         self.driver.find_element(By.ID, 'filefile2').send_keys(cert_path)
         self.driver.find_element(By.ID, 'add_browser_password').send_keys(password)
-        self.driver.execute_script(f'document.getElementById("add_browser_password").value = "{password}"')
-        self.driver.execute_script('document.getElementById("add_browser_password_layout").style.display = "none"')
+        try:
+            self.driver.execute_script('document.getElementById("add_browser_password_layout").style.display = "none"')
+        except:
+            pass
+
         self.driver.find_element(By.CSS_SELECTOR, '.n_blue_btn #btn_common_confirm').click()
         try:
             self.wait_and_click(By.CLASS_NAME, 'occui_bt_close', WAIT_SHORT)
