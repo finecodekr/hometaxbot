@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 from http import HTTPStatus
 from typing import List, TypedDict, TypeVar
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, unquote
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element
 
@@ -542,6 +542,12 @@ class HometaxScraper:
             'txaaAdmNo': ctn_no,
             'txaaPswd': snake_oil_encrypt(cta_password),
         })
+
+        login_res = self.parse_cta_login_response(res.text)
+        postfix_str = datetime.today().strftime("%Y_%m_%d")
+        res = self.session.get(
+            f'https://teht.hometax.go.kr/pubcLogin.do?operate=txaaSession&txaaAdmNo={login_res[1]["lgnRsltCd"]}&postfix={postfix_str}')
+
         self.request_permission(screen_id='index_pp')
         res = self.session.post(
             'https://hometax.go.kr/wqAction.do?actionId=ATXPPCBA001R17&screenId=index_pp&popupYn=false&realScreenId=',
@@ -566,6 +572,27 @@ class HometaxScraper:
             raise AuthenticationFailed('홈택스에 로그인되지 않은 상태입니다.')
 
         self.cta_admin_no = ctn_no
+
+    def parse_cta_login_response(self, data: str) -> tuple[str, dict, str]:
+        callback_pattern = r'(?<=nts_loginSystemCallback\()(.*?)(?=\);)'
+        data1 = re.search(callback_pattern, data).group(0)
+        data1 = re.sub(r'(?=\'errMsg\')(.*?)(?=\'lgnRsltCd\')', '', data1)
+        data1 = data1.replace("'", '"')
+
+        decode_pattern = r'(?<=decodeURIComponent\()(.*?)(?=\);)'
+        data2 = re.search(decode_pattern, data).group(0)
+        data2 = re.sub(r'(?=\'lgnRsltCd\')(.*?)(?=\'pswdErrNbcnt\')', '', data2)
+        data2 = data2.replace("'", '"')
+
+        sys_code = re.search(r'(?<=").*?(?=")', data1).group(0)
+
+        json_str = re.search(r'(?<=\,)(.*?)(?<=\})', data1).group(0)
+        parsed_json = json.loads(json_str)
+
+        err_msg = re.search(r'(?<=").*?(?=")', data2).group(0)
+        err_msg = unquote(err_msg).replace('+', ' ').replace('\\n', '\n')
+
+        return sys_code, parsed_json, err_msg
 
 
 with open(os.path.dirname(__file__) + '/hometax_xml_fields.yml', encoding='utf-8') as f:
