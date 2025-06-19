@@ -69,7 +69,9 @@ class HometaxDriver:
 
         self.wait_for_blockui_disappeared()
         self.driver.find_element(By.ID, 'filefile2').send_keys(cert_path)
-        self.driver.find_element(By.ID, 'add_browser_password').send_keys(password)
+        # self.driver.find_element(By.ID, 'add_browser_password').send_keys(password)
+        self.driver.execute_script(f'document.getElementById("add_browser_password").value = "{password}"')
+
         try:
             self.driver.execute_script('document.getElementById("add_browser_password_layout").style.display = "none"')
         except:
