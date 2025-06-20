@@ -40,6 +40,10 @@ def 전자신고결과조회(scraper: HometaxScraper, begin: date, end: date):
                     "pageSize": "0",
                     "pageNum": "0",
                 }):
+            if 세목코드 == '14' and element['txnrmYm'][4:] == '02':
+                원천_연말정산금액 = 신고서_원천세_연말정산금액(scraper, models.세목코드.원천세, element['rtnCvaId'])
+                element['stasAmt'] = element['stasAmt'] - int(원천_연말정산금액)
+
             yield model_from_hometax_json(models.전자신고결과조회, element)
 
 
@@ -284,6 +288,12 @@ def 신고서_납부서(scraper: HometaxScraper, 세목: models.세목코드, be
                     ),
                     납부서_pdf=BytesIO(res.content),
                 )
+
+
+def 신고서_원천세_연말정산금액(scraper: HometaxScraper, 세목: models.세목코드, 접수번호: str):
+    clip_uid = clipreport_uid(scraper, 세목, 접수번호)
+    data = clip_data(scraper, clip_uid)
+    return get_원천세_연말정산금액(data)
 
 
 def s_time():
