@@ -73,3 +73,13 @@ class TestScrape(unittest.TestCase):
             clip_uid = reports.clipreport_uid(scraper, report.세목코드, report.접수번호)
             data = reports.clip_data(scraper, clip_uid)
             print(data)
+
+    def test_연말정산금액_for_pdf(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
+
+        for report in reports.세금신고내역_원천세(scraper, date(2025, 1, 1), date(2025, 6, 19)):
+            clip_uid = reports.clipreport_uid(scraper, report.세목코드, report.접수번호)
+            data = reports.clip_data(scraper, clip_uid)
+            원천_연말정산금액 = reports.get_원천세_연말정산금액(data)
+            print(f"원천_연말정산금액 :{원천_연말정산금액}")
