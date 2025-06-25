@@ -89,17 +89,14 @@ class HometaxDriver:
 
     def login_as_tax_agent(self, ctn_no, cta_password):
         for element in self.driver.find_elements(By.CLASS_NAME, 'w2textbox'):
-            if "세무대리인 권한을 가진 사용자" in element.text:
-                self.wait_and_click(By.XPATH, '//input[@value="확인"]')
-                self.wait(By.XPATH, '//input[@title="세무대리인 관리번호 입력"]')
-                (self.driver.find_element(By.XPATH, '//input[@title="세무대리인 관리번호 입력"]')
-                 .send_keys(ctn_no))
-                (self.driver.find_element(By.XPATH, '//input[@title="비밀번호 입력"]')
-                 .send_keys(cta_password))
-                self.wait_and_click(By.XPATH, '//input[@value="로그인"]')
-                break
-        else:
-            raise HometaxException('세무대리인 인증서가 아닙니다.')
+            self.wait_and_click(By.XPATH, '//input[@value="확인"]')
+            self.wait(By.XPATH, '//input[@title="세무대리인 관리번호 입력"]')
+            (self.driver.find_element(By.XPATH, '//input[@title="세무대리인 관리번호 입력"]')
+                .send_keys(ctn_no))
+            (self.driver.find_element(By.XPATH, '//input[@title="비밀번호 입력"]')
+                .send_keys(cta_password))
+            self.wait_and_click(By.XPATH, '//input[@value="로그인"]')
+            break
 
     def wait_for_blockui_disappeared(self, delay=WAIT_LONG):
         WebDriverWait(self.driver, delay).until(
@@ -129,8 +126,8 @@ class HometaxDriver:
         # self.driver.find_element_by_class_name('login_box').find_element_by_xpath('//input[@type="button"][@value="로그인"]').click()
 
     def home(self):
-        # self.driver.get('https://hometax.go.kr')
-        self.driver.get('https://hometax.go.kr/websquare/websquare_cdn.html?w2xPath=/ui/pp/index.xml')
+        self.driver.get('https://hometax.go.kr')
+        # self.driver.get('https://hometax.go.kr/websquare/websquare_cdn.html?w2xPath=/ui/pp/index.xml')
         self.wait_loading()
 
     @staticmethod
@@ -162,6 +159,7 @@ class HometaxDriver:
 
     def wait_loading(self):
         WebDriverWait(self.driver, WAIT_LONG).until(expected_conditions.invisibility_of_element((By.CLASS_NAME, 'w2_modal')))
+        WebDriverWait(self.driver, WAIT_LONG).until(expected_conditions.invisibility_of_element((By.CLASS_NAME, 'w2_proc_modal')))
         WebDriverWait(self.driver, WAIT_LONG).until(lambda locator: self.driver.execute_script('return !!window.jQuery && window.jQuery.active == 0'))
 
     def close(self):
