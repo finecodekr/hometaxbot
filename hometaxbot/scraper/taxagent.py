@@ -52,11 +52,13 @@ def 수임납세자(scraper: HometaxScraper, begin: date, end: date):
     }, subdomain='teht'):
         yield models.세무대리수임정보(
             납세자=models.납세자(
-                납세자번호=item['resno'],
+                납세자번호=item['bsno'],
                 납세자명=item['tnmNm'],
                 휴대전화번호=item['telnoEncCntn'],
                 전자메일주소=item['emlAdrEncCntn'],
-                대표자명=item['txprNm']),
+                대표자명=item['txprNm'],
+                대표자주민등록번호=item['resno']
+            ),
             수임일=item['afaDt'],
             동의일=item['agrDt'],
             정보제공범위=''
