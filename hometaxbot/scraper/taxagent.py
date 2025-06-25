@@ -3,6 +3,7 @@
 """
 from datetime import date
 
+from hometaxbot import models
 from hometaxbot.scraper import HometaxScraper
 
 
@@ -49,4 +50,14 @@ def 수임납세자(scraper: HometaxScraper, begin: date, end: date):
         "txaaAdmNo": scraper.cta_admin_no,
         "txprDscmNoEncCntn": ""
     }, subdomain='teht'):
-        yield item
+        yield models.세무대리수임정보(
+            납세자=models.납세자(
+                납세자번호=item['resno'],
+                납세자명=item['tnmNm'],
+                휴대전화번호=item['telnoEncCntn'],
+                전자메일주소=item['emlAdrEncCntn'],
+                대표자명=item['txprNm']),
+            수임일=item['afaDt'],
+            동의일=item['agrDt'],
+            정보제공범위=''
+        )

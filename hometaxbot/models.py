@@ -69,8 +69,9 @@ class 세무대리인:
 @dataclass(kw_only=True)
 class 세무대리수임정보:
     납세자: 납세자
-    세무대리인: 세무대리인
+    세무대리인: 세무대리인 = None
     수임일: date
+    동의일: date = None
     정보제공범위: str
 
 
