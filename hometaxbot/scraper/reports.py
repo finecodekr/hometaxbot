@@ -6,7 +6,7 @@ import time
 from dataclasses import fields
 from datetime import date, datetime
 from io import BytesIO
-from typing import Generator
+from typing import Generator, Dict
 from urllib.parse import unquote
 
 import dateutil.parser
@@ -510,7 +510,7 @@ def traverse_collection(obj, key=None):
         yield key, obj
 
 
-def 원천세_세부항목(scraper: HometaxScraper, report: models.전자신고결과조회):
+def 원천세_세부항목(scraper: HometaxScraper, report: models.전자신고결과조회) -> Dict[str, models.원천세_세부항목]:
     """
     전자신고결과조회를 통해 받은 report를 이용해서 clip_data로 신고서 데이터를 다음과 같은 리스트 형태로 가져온 후,
     다음과 같은 구조의 데이터에서 A01, 근로소득 간이세액, 인원 15명, 총지급액 62285950원, 소득세등 3754760원 정보를 뽑아낸다.
@@ -534,7 +534,6 @@ def 원천세_세부항목(scraper: HometaxScraper, report: models.전자신고�
     # 모델의 Decimal 필드들을 가져옴 (항목코드, 항목명, 세부항목 제외)
     
     for i, row in enumerate(rows):
-        print(row)
         if not row[0] or row[0][0] != 'A':
             continue
         

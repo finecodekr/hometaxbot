@@ -32,7 +32,8 @@ class TestScrape(unittest.TestCase):
 
         for report in reports.전자신고결과조회(scraper, date(2024, 5, 1), date(2025, 4, 1)):
             if report.세목코드 == 세목코드.원천세:
-                print(reports.원천세_세부항목(scraper, report))
+                records = reports.원천세_세부항목(scraper, report)
+                self.assertGreater(records['A25'].소득세등, 0)
 
 
     def test_scrape_데이터(self):
