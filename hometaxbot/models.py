@@ -100,6 +100,7 @@ class 전자신고결과조회(HometaxModel):
     공급가액: Decimal  # 예시: 10500000
     금액: Decimal
     납부금액: Decimal
+    data: dict = None
 
 
 @dataclass(kw_only=True)
@@ -294,3 +295,18 @@ class 전자신고_신고서_납부서(HometaxModel):
     신고서_data: dict
     납부내역: 납부내역
     납부서_pdf: BytesIO
+
+
+@dataclass(kw_only=True)
+class 원천세_세부항목(HometaxModel):
+    항목코드: str  # 예: A01
+    항목명: str  # 예: 근로소득
+    세부항목: str = None  # 예: 간이세액
+    인원: int = None
+    총지급액: Decimal = None
+    소득세등: Decimal = None
+    농특세: Decimal = None
+    가산세: Decimal = None
+    당월조정환급세액: Decimal = None
+    납부세액_소득세등: Decimal = None
+    납부세액_농특세: Decimal = None

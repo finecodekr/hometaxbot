@@ -2,6 +2,7 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
+from hometaxbot.models import 세목코드
 from hometaxbot.scraper import HometaxScraper, reports, transactions
 from tests import testdata
 
@@ -11,6 +12,7 @@ class TestScrape(unittest.TestCase):
         scraper = HometaxScraper()
         scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
 
+        # TODO 테스트 돌릴 때 사용하는 인증서에 연결되는 사업자에 따라 테스트를 통과시킬 수 있는 데이터가 있는 기간이 다를 수 있다.
         begin = date(2024, 1, 1)
         end = date(2024, 6, 1)
 
@@ -23,6 +25,15 @@ class TestScrape(unittest.TestCase):
         self.assertIsNotNone(list(reports.환급금조회(scraper, begin, end)))
         self.assertIsNotNone(list(reports.고지내역(scraper, begin, end)))
         self.assertIsNotNone(list(reports.체납내역(scraper, begin, end)))
+
+    def test_세금신고서_data(self):
+        scraper = HometaxScraper()
+        scraper.login_with_cert(testdata.CORP_CERT, testdata.CORP_PASSWORD)
+
+        for report in reports.전자신고결과조회(scraper, date(2024, 5, 1), date(2025, 4, 1)):
+            if report.세목코드 == 세목코드.원천세:
+                print(reports.원천세_세부항목(scraper, report))
+
 
     def test_scrape_데이터(self):
         scraper = HometaxScraper()

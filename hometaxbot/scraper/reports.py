@@ -1,7 +1,9 @@
 import base64
+from decimal import Decimal
 import json
 import re
 import time
+from dataclasses import fields
 from datetime import date, datetime
 from io import BytesIO
 from typing import Generator
@@ -447,7 +449,8 @@ def clipreport_uid(scraper: HometaxScraper, 세목: models.세목코드, 접수�
 
 
 def clip_data(scraper: HometaxScraper, clip_uid: str):
-    """홈택스에서 PDF 신고서를 렌더링하기 위해 가져오는 데이터. 아직 제대로 동작하지 않고 빈 신고서 데이터로 온다."""
+    """홈택스에서 신고서 조회 기능은 데이터를 따로 불러온 다음 PDF 신고서를 렌더링하는 방식인데, 그 데이터만 스크래핑한다. """
+    page_count = 0
     for i in range(4):
         time.sleep(1)
         res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
@@ -456,18 +459,30 @@ def clip_data(scraper: HometaxScraper, clip_uid: str):
             'clipUID': clip_uid,
             's_time': s_time()
         })
-        if "'endReport':true" in res.text:
+        res_json = json.loads(res.text.strip("()").replace("'", '"'))
+        if res_json['endReport']:
+            page_count = res_json['count'] - 1
             break
     else:
         raise HometaxException(f'Report is not ready: {res.text}')
 
-    res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
-        'uid': clip_uid,
-        'clipUID': clip_uid,
-        'ClipType': 'DocumentPageView',
-        'ClipData': json_minified_dumps({"reportkey": clip_uid, "isMakeDocument": True, "pageMethod": 0}),
-    }, headers={'Referer': 'https://sesw.hometax.go.kr/serp/clipreport.do'})
-    return parse_report_data(res.json()['resValue']['viewData'])
+    parsed_data = []
+    for pageMethod in range(page_count + 1):
+        res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
+            'uid': clip_uid,
+            'clipUID': clip_uid,
+            'ClipType': 'DocumentPageView',
+            'ClipData': json_minified_dumps({"reportkey": clip_uid, "isMakeDocument": True, "pageMethod": pageMethod}),
+        }, headers={'Referer': 'https://sesw.hometax.go.kr/serp/clipreport.do'})
+
+        view_data = parse_report_data(res.json()['resValue']['viewData'])
+        # 신고서 데이터에서 유의미한 데이터는 모두 'a'라는 키값에 할당되어 있는데, 이게 다양한 구조로 존재하기 때문에 데이터 전체를 순회하면서
+        # 'a' 키값에 할당된 데이터만 뽑아낸다.
+        for k, v in traverse_collection(view_data):
+            if k == 'a' and isinstance(v, str) and 'blank' not in v:
+                parsed_data.append(v.split(','))
+
+    return parsed_data
 
 
 def parse_report_data(encoded: str):
@@ -482,3 +497,54 @@ def unquote_values(data: dict | list):
     elif isinstance(data, str):
         return unquote(data)
     return data
+
+
+def traverse_collection(obj, key=None):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from traverse_collection(v, k)
+    elif isinstance(obj, list):
+        for index, v in enumerate(obj):
+            yield from traverse_collection(v, index)
+    else:
+        yield key, obj
+
+
+def 원천세_세부항목(scraper: HometaxScraper, report: models.전자신고결과조회):
+    """
+    전자신고결과조회를 통해 받은 report를 이용해서 clip_data로 신고서 데이터를 다음과 같은 리스트 형태로 가져온 후,
+    다음과 같은 구조의 데이터에서 A01, 근로소득 간이세액, 인원 15명, 총지급액 62285950원, 소득세등 3754760원 정보를 뽑아낸다.
+    ```
+        ['근로소득', '근로소득', '7', '13', '1', '0', '7', '0', '0', '0'],
+        ['간이세액', '간이세액', '7', '14', '1', '0', '7', '0', '0', '0'],
+        ['A01', 'A01', '7', '14', '1', '0', '7', '0', '0', '0'],
+        ['15', '15', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['62', '285', '950', '62285950', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['3', '754', '760', '3754760', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['+', '+', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['+', '+', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['+', '+', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['+', '+', '7', '15', '3', '0', '7', '0', '0', '0'],
+        ['+', '+', '7', '15', '3', '0', '7', '0', '0', '0'],
+    ```
+    """
+    items = {}
+    rows = clip_data(scraper, clipreport_uid(scraper, report.세목코드, report.접수번호))
+    
+    # 모델의 Decimal 필드들을 가져옴 (항목코드, 항목명, 세부항목 제외)
+    
+    for i, row in enumerate(rows):
+        print(row)
+        if not row[0] or row[0][0] != 'A':
+            continue
+        
+        items[row[0]] = models.원천세_세부항목(항목코드=row[0], 항목명=rows[i - 1][0])
+        
+        for j, field in enumerate([field for field in fields(models.원천세_세부항목) 
+                                   if field.type in [Decimal, int]]):
+            if i + j + 1 < len(rows) and rows[i + j + 1][0] not in ['', '+']:
+                setattr(items[row[0]], field.name, field.type(rows[i + j + 1][-9]))
+            else:
+                setattr(items[row[0]], field.name, field.type(0))
+
+    return items
