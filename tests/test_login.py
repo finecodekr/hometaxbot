@@ -1,6 +1,10 @@
+import time
 import unittest
 from datetime import date
 
+import dateutil.parser
+
+from hometaxbot.scraper.webdriver import HometaxDriver
 from tests import testdata
 
 from hometaxbot.models import 홈택스사용자구분코드, 세목코드
@@ -42,3 +46,23 @@ class TestHometaxLogin(unittest.TestCase):
         self.assertEqual(6, len(수임.세무대리인.관리번호))
 
         self.assertEqual('과세', scraper.사업자등록상태()['면세구분'])
+
+
+class TestSimpleAuth(unittest.TestCase):
+    def test_login_with_simple_auth(self):
+        driver = HometaxDriver(headless=False)
+        driver.begin_simple_authentication(
+            testdata.SIMPLE_AUTH_PROVIDER,
+            testdata.SIMPLE_AUTH_REALNAME,
+            dateutil.parser.parse(testdata.SIMPLE_AUTH_BIRTHDAY),
+            testdata.SIMPLE_AUTH_PHONENUMBER,
+        )
+
+        # 10초 대기하는 동안 실제 간편인증을 해야 한다.
+        time.sleep(10)
+
+        driver.confirm_simple_authentication()
+
+        scraper = HometaxScraper()
+        scraper.login_with_cookies(driver.driver.get_cookies())
+        self.assertIsNotNone(scraper.user_info.홈택스ID)

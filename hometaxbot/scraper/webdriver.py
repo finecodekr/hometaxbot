@@ -2,6 +2,7 @@ import base64
 import logging
 import re
 import time
+from datetime import date
 from pathlib import Path
 
 from selenium import webdriver
@@ -28,6 +29,9 @@ class HometaxDriver:
         options.add_argument(
             '--disable-dev-shm-usage')  # https://developers.google.com/web/tools/puppeteer/troubleshooting - Tips
 
+        caps = options.to_capabilities()
+        caps["goog:loggingPrefs"] = {"performance": "ALL"}
+
         self.download_folder = download_folder or str(Path.home() / 'Downloads')
 
         preferences = {"download.default_directory": self.download_folder,
@@ -36,6 +40,9 @@ class HometaxDriver:
         options.add_experimental_option("prefs", preferences)
 
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+        self.driver.execute_cdp_cmd("Network.enable", {})
+        self.driver.execute_cdp_cmd("Page.enable", {})
 
     def __enter__(self):
         return self
@@ -97,6 +104,32 @@ class HometaxDriver:
                 .send_keys(cta_password))
             self.wait_and_click(By.XPATH, '//input[@value="로그인"]')
             break
+
+    def begin_simple_authentication(self, provider, realname, birthday: date, phone_number):
+        self.home()
+        self.wait_and_click(By.LINK_TEXT, '간편인증')
+
+        self.wait(By.ID, 'mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
+        self.driver.switch_to.frame('mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
+        self.wait(By.ID, 'oacxEmbededContents')
+        # self.wait(By.ID, 'oacx-request-btn-pc')
+
+        self.driver.find_element(By.CSS_SELECTOR, f'span[aria-label="{provider}"]').click()
+        self.driver.find_element(By.ID, 'oacx_name').send_keys(realname)
+        self.driver.find_element(By.ID, 'oacx_birth').send_keys(birthday.strftime('%Y%m%d'))
+
+        self.driver.find_element(By.CSS_SELECTOR, 'select[data-id="oacx_phone1"]').send_keys(phone_number[:3])
+        self.driver.find_element(By.ID, 'oacx_phone2').send_keys(phone_number[3:])
+
+        self.driver.find_element(By.ID, 'totalAgree').click()
+        self.driver.find_element(By.ID, 'oacx-request-btn-pc').click()
+
+    def confirm_simple_authentication(self):
+        self.driver.switch_to.default_content()
+        self.wait(By.ID, 'mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
+        self.driver.switch_to.frame('mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
+
+        self.wait_and_click(By.XPATH, '//button[text()="인증 완료"]')
 
     def wait_for_blockui_disappeared(self, delay=WAIT_LONG):
         WebDriverWait(self.driver, delay).until(
