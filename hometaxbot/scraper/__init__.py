@@ -68,7 +68,11 @@ class HometaxScraper:
                                 headers={'Content-Type': 'application/json'})
         if res.status_code == HTTPStatus.NOT_FOUND:
             raise HometaxException('홈택스 서버에 접속할 수 없습니다. 잠시 후 다시 시도해주세요.')
-        pckEncSsn = res.json()['pkcEncSsn']
+
+        try:
+            pckEncSsn = res.json()['pkcEncSsn']
+        except JSONDecodeError as e:
+            raise HometaxException(res.text)
 
         with open_files(cert_paths) as files:
             sign = load_cert(files, prikey_password)
