@@ -194,6 +194,8 @@ class HometaxDriver:
         WebDriverWait(self.driver, WAIT_LONG).until(expected_conditions.invisibility_of_element((By.CLASS_NAME, 'w2_modal')))
         WebDriverWait(self.driver, WAIT_LONG).until(expected_conditions.invisibility_of_element((By.CLASS_NAME, 'w2_proc_modal')))
         WebDriverWait(self.driver, WAIT_LONG).until(lambda locator: self.driver.execute_script('return !!window.jQuery && window.jQuery.active == 0'))
+        if self.driver.find_element(By.CLASS_NAME, 'w2popup_window'):
+            self.driver.find_element(By.CSS_SELECTOR, '.btn_pop_close input').click()
 
     def close(self):
         self.driver.close()
