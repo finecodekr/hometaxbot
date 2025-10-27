@@ -163,12 +163,6 @@ class HometaxDriver:
         # self.driver.get('https://hometax.go.kr/websquare/websquare_cdn.html?w2xPath=/ui/pp/index.xml')
         self.wait_loading()
 
-        try:
-            self.wait_and_click(By.CSS_SELECTOR, '.btn_pop_close input', 10)
-        except TimeoutException:
-            print('popup not found')
-            pass
-
     @staticmethod
     def javascript_for_login(username, password):
         return re.sub(r'\s', '', f"""

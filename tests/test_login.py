@@ -50,7 +50,7 @@ class TestHometaxLogin(unittest.TestCase):
 
 class TestSimpleAuth(unittest.TestCase):
     def test_login_with_simple_auth(self):
-        driver = HometaxDriver(headless=False)
+        driver = HometaxDriver()
         driver.begin_simple_authentication(
             testdata.SIMPLE_AUTH_PROVIDER,
             testdata.SIMPLE_AUTH_REALNAME,
@@ -58,8 +58,7 @@ class TestSimpleAuth(unittest.TestCase):
             testdata.SIMPLE_AUTH_PHONENUMBER,
         )
 
-        # 10초 대기하는 동안 실제 간편인증을 해야 한다.
-        time.sleep(10)
+        input('인증하고 나서 아무 키나 눌러')
 
         driver.confirm_simple_authentication()
 
