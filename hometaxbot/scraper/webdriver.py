@@ -48,7 +48,6 @@ class HometaxDriver:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.close()
         self.driver.quit()
 
     def login_with_cert(self, cert_path, password):
