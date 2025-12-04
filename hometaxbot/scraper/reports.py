@@ -542,7 +542,7 @@ def 원천세_세부항목(scraper: HometaxScraper, report: models.전자신고�
         for j, field in enumerate([field for field in fields(models.원천세_세부항목) 
                                    if field.type in [Decimal, int]]):
             if i + j + 1 < len(rows) and rows[i + j + 1][0] not in ['', '+']:
-                setattr(items[row[0]], field.name, field.type(rows[i + j + 1][-9]))
+                setattr(items[row[0]], field.name, field.type(rows[i + j + 1][-10]))
             else:
                 setattr(items[row[0]], field.name, field.type(0))
 
