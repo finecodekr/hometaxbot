@@ -240,7 +240,8 @@ class HometaxScraper:
         짧은 시간 안에 여러 번 스크래핑할 때는 반복적으로 공동인증서 로그인을 사용하기보다 한 번 로그인하고 그 쿠키를 재활용한다.
         """
         for cookie in cookies:
-            del cookie['sameSite']
+            if 'sameSite' in cookie:
+                del cookie['sameSite']
 
             if 'httpOnly' in cookie:
                 http_only = cookie.pop('httpOnly')
