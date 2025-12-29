@@ -1,11 +1,14 @@
 import csv
 import json
 import time
+from collections import defaultdict
 from datetime import date
 from decimal import Decimal
-from io import StringIO
+from io import BytesIO, StringIO
+from typing import Optional, Tuple
 
 import dateutil.parser
+import xlrd
 from dateutil.relativedelta import relativedelta
 
 from hometaxbot import models, Throttled
@@ -13,6 +16,7 @@ from hometaxbot.models import 수입문서, 납세자, 연락처, 세금계산�
 from hometaxbot.scraper import HometaxScraper, parse_response
 from hometaxbot.scraper.requestutil import XMLValueFinder, action_params, get_quarter_by_date
 from hometaxbot.scraper.util import split_date_range
+from hometaxbot.types import parse_date
 
 invoice_type_choices = {
     '전자세금계산서': '01',
@@ -87,17 +91,22 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
 
                 for page in range(1, first_page['pageInfoVO']['totalCount'] // scraper.DOWNLOAD_PAGE_SIZE + 2):
                     pageInfoVO = {
-                        'pageSize': scraper.DOWNLOAD_PAGE_SIZE,
+                        'pageSize': "10",
                         'pageNum': page,
+                        'totalCount': first_page['pageInfoVO']['totalCount']
+                    }
+                    excelPageInfoVO = {
+                        'pageNum': str(page),
+                        'pageSize': scraper.DOWNLOAD_PAGE_SIZE,
                         'totalCount': first_page['pageInfoVO']['totalCount']
                     }
                     res = scraper.session.post('https://teet.hometax.go.kr/wqAction.do', data={
                         'downloadParam': json.dumps({
-                            "cstnInfoYn": "", "fleDwldYn": "Y", "fleTp": "txt", "icldCstnBmanInfr": "",
-                            "icldLsatInfr": "", "resnoSecYn": "Y", "srtClCd": "1", "srtOpt": "01",
+                            "cstnInfoYn": "Y", "fleDwldYn": "Y", "fleTp": "xls", "icldCstnBmanInfr": "",
+                            "icldLsatInfr": "Y", "resnoSecYn": "Y", "srtClCd": "1", "srtOpt": "01",
                             "affectedCnt": 0,
                             "pageInfoVO": pageInfoVO,
-                            "excelPageInfoVO": pageInfoVO,
+                            "excelPageInfoVO": excelPageInfoVO,
                             "etxivIsnBrkdTermDVOPrmt": params,
                         }),
                         'actionId': 'ATEETBDA005R04',
@@ -106,18 +115,246 @@ def 세금계산서(scraper: HometaxScraper, begin: date, end: date):
                         'downloadView': 'Y'
                     })
 
-                    reader = StringIO(res.content.decode('utf8'))
-                    for i in range(4):
-                        next(reader)
+                    # Excel 파일 파싱
+                    excel_file = BytesIO(res.content)
+                    wb = xlrd.open_workbook(file_contents=excel_file.read())
 
-                    dict_reader = csv.DictReader(reader, delimiter='\t')
-                    for row in dict_reader:
-                        yield scrape_세금계산서_detail(scraper, row['승인번호'].replace('-', ''), row['전송일자'])
-                        time.sleep(Throttled.wait)
+                    items_by_approval = defaultdict(list)
+                    try:
+                        sheet_items = wb.sheet_by_name('품목')
+                        headers_items = [cell.value for cell in sheet_items.row(4)]
+
+                        for row_idx in range(5, sheet_items.nrows):
+                            row_values = [cell.value for cell in sheet_items.row(row_idx)]
+                            row_data = dict(zip(headers_items, row_values))
+                            
+                            approval_no = str(row_data.get('승인번호', '')).strip()
+                            if not approval_no:
+                                continue
+
+                            try:
+                                item = 세금계산서품목(
+                                    일련번호=int(row_data.get('품목순번', 0)),
+                                    공급일자=parse_date(str(row_data.get('일자', ''))),
+                                    품목명=str(row_data.get('품목명', '')),
+                                    규격=str(row_data.get('규격', '')) if row_data.get('규격') else None,
+                                    비고=str(row_data.get('비고', '')) if row_data.get('비고') else None,
+                                    수량=Decimal(str(row_data['수량']).replace(',', '')) if row_data.get('수량') and str(row_data['수량']).strip() else None,
+                                    단가=Decimal(str(row_data['단가']).replace(',', '')) if row_data.get('단가') else Decimal(0),
+                                    공급가액=Decimal(str(row_data['공급가액']).replace(',', '')) if row_data.get('공급가액') else Decimal(0),
+                                    세액=Decimal(str(row_data.get('세액', 0)).replace(',', '')) if row_data.get('세액') else Decimal(0),
+                                )
+                                items_by_approval[approval_no].append(item)
+                            except (ValueError, KeyError):
+                                continue
+                    except xlrd.XLRDError:
+                        pass
+
+                    try:
+                        sheet_invoice = wb.sheet_by_name('세금계산서')
+                        headers_invoice = [cell.value for cell in sheet_invoice.row(5)]
+
+                        for row_idx in range(6, sheet_invoice.nrows):
+                            row_values = [cell.value for cell in sheet_invoice.row(row_idx)]
+                            
+                            if not row_values[1]:
+                                continue
+                            
+                            row_data = {}
+                            for i, header in enumerate(headers_invoice):
+                                if i < len(row_values):
+                                    if header in row_data:
+                                        row_data[f'{header}_{i}'] = row_values[i]
+                                    else:
+                                        row_data[header] = row_values[i]
+                            
+                            row_data_by_index = {i: row_values[i] if i < len(row_values) else None for i in range(len(headers_invoice))}
+                            row_data['_by_index'] = row_data_by_index
+
+                            approval_no = str(row_values[1]).strip()
+                            items = items_by_approval.get(approval_no, [])
+
+                            업종, 업태 = get_업종업태(scraper, approval_no)
+
+                            invoice = excel_row_to_세금계산서(row_data, items, headers_invoice)
+                            
+                            if 업종 or 업태:
+                                invoice.공급받는자.종목 = 업종
+                                invoice.공급받는자.업태 = 업태
+                            
+                            yield invoice
+                    except xlrd.XLRDError:
+                        continue
+
+
+def get_업종업태(scraper: HometaxScraper, approval_no: str) -> Tuple[Optional[str], Optional[str]]:
+    try:
+        etan = approval_no.replace('-', '')
+        
+        response = scraper.request_action_json(
+            'ATEETBDA001R02',
+            'UTEETBDA38',
+            json={
+                "etxivIsnBrkdTermDVOPrmt": {
+                    "etan": etan,
+                    "screenId": "UTEETBDA01",
+                    "slsPrhClCd": "01",
+                    "etxivClCd": "",
+                    "etxivClsfCd": "",
+                    "etxivMpbNo": "0",
+                    "etxivTin": scraper.tin,                                        
+                    "layerPopup": "Y",                                        
+                    "popupID": "UTEETBDA38"
+                }
+            },
+            popup_yn='true',
+            real_screen_id='',
+            subdomain='teet'
+        )
+        
+        etxivIsnBrkdTermDVO = response.get('etxivIsnBrkdTermDVO', {})
+        업종 = etxivIsnBrkdTermDVO.get('dmnrItmNm')
+        업태 = etxivIsnBrkdTermDVO.get('dmnrBcNm')
+        
+        업종 = 업종 if 업종 else None
+        업태 = 업태 if 업태 else None
+        
+        return (업종, 업태)
+    except Exception:
+        return (None, None)
+
+
+def excel_row_to_세금계산서(row_data: dict, items: list, headers: list = None) -> models.세금계산서:
+    row_by_index = row_data.get('_by_index', {})
+    
+    def safe_get(key, default=''):
+        value = row_data.get(key, default)
+        return str(value).strip() if value else default
+    
+    def safe_get_by_index(index, default=''):
+        value = row_by_index.get(index, default)
+        return str(value).strip() if value else default
+
+    def safe_decimal(key, default=Decimal(0)):
+        value = row_data.get(key, default)
+        if not value:
+            return default
+        return Decimal(str(value).replace(',', ''))
+
+    def safe_decimal_by_index(index, default=Decimal(0)):
+        value = row_by_index.get(index, default)
+        if not value:
+            return default
+        return Decimal(str(value).replace(',', ''))
+
+    def safe_date(key):
+        value = row_data.get(key)
+        if not value:
+            return None
+        return parse_date(str(value))
+
+    분류_텍스트 = safe_get('전자세금계산서 분류', '')
+    종류_텍스트 = safe_get('전자세금계산서종류', '')
+    
+    분류 = models.세금계산서분류.세금계산서
+    if '수정세금계산서' in 분류_텍스트:
+        분류 = models.세금계산서분류.수정세금계산서
+    elif '계산서' in 분류_텍스트 and '수정' not in 분류_텍스트:
+        분류 = models.세금계산서분류.계산서
+    elif '수정계산서' in 분류_텍스트:
+        분류 = models.세금계산서분류.수정계산서
+    
+    종류 = models.세금계산서종류.일반
+    if '영세율' in 종류_텍스트 and '위수탁' not in 종류_텍스트:
+        종류 = models.세금계산서종류.영세율
+    elif '위수탁' in 종류_텍스트 and '영세율' not in 종류_텍스트:
+        종류 = models.세금계산서종류.위수탁
+    elif '수입' in 종류_텍스트 and '납부유예' not in 종류_텍스트:
+        종류 = models.세금계산서종류.수입
+    elif '영세율위수탁' in 종류_텍스트 or ('영세율' in 종류_텍스트 and '위수탁' in 종류_텍스트):
+        종류 = models.세금계산서종류.영세율위수탁
+    elif '수입납부유예' in 종류_텍스트:
+        종류 = models.세금계산서종류.수입납부유예
+    
+    영수청구_텍스트 = safe_get('영수/청구 구분', '')
+    영수청구코드 = '01'
+    if '청구' in 영수청구_텍스트:
+        영수청구코드 = '02'
+
+    위수탁자 = None
+    위수탁자연락처 = None
+    수탁사업자등록번호 = safe_get('수탁사업자등록번호')
+    if 수탁사업자등록번호:
+        위수탁자_상호 = safe_get_by_index(26, '')
+        위수탁자 = 납세자(
+            납세자번호=수탁사업자등록번호,
+            납세자명=위수탁자_상호,
+            대표자명=None,
+            주소=None,
+            업태=None,
+            종목=None,
+            업종코드=None,
+        )
+
+    return models.세금계산서(
+        승인번호=safe_get('승인번호'),
+        전송일자=safe_date('전송일자'),
+        작성일자=safe_date('작성일자'),
+        세금계산서분류=분류,
+        세금계산서종류=종류,
+        영수청구코드=영수청구코드,
+        수정코드=None,
+        당초승인번호=None,
+        비고=safe_get('비고'),
+        수입문서참조=None,
+        공급자=납세자(
+            납세자번호=safe_get('공급자사업자등록번호'),
+            납세자명=safe_get_by_index(6),
+            대표자명=safe_get_by_index(7),
+            주소=safe_get_by_index(8),
+            업태=None,
+            종목=None,
+            업종코드=None,
+        ),
+        공급자연락처=연락처(
+            부서명='',
+            이름='',
+            전화번호='',
+            이메일=safe_get('공급자 이메일'),
+        ),
+        공급받는자=납세자(
+            납세자번호=safe_get('공급받는자사업자등록번호') or safe_get('공급자사업자등록번호'),
+            납세자명=safe_get_by_index(11) or safe_get_by_index(6),
+            대표자명=safe_get_by_index(12) or safe_get_by_index(7),
+            주소=safe_get_by_index(13) or safe_get_by_index(8),
+            업태=None,
+            종목=None,
+            업종코드=None,
+        ),
+        공급받는자연락처=연락처(
+            부서명='',
+            이름='',
+            전화번호='',
+            이메일=safe_get('공급받는자 이메일1') or safe_get('공급자 이메일'),
+        ),
+        공급받는자연락처2=연락처(
+            부서명='',
+            이름='',
+            전화번호='',
+            이메일=safe_get('공급받는자 이메일2'),
+        ) if safe_get('공급받는자 이메일2') else None,
+        위수탁자=위수탁자,
+        위수탁자연락처=위수탁자연락처,
+        결제방법코드=None,
+        결제금액=Decimal(0),
+        공급가액=safe_decimal('공급가액'),
+        세액=safe_decimal('세액'),
+        총금액=safe_decimal('합계금액'),
+        품목=items,
+    )
 
 
 def scrape_세금계산서_detail(scraper: HometaxScraper, etan, 전송일자):
-    """전송일자는 세금계산서 XML 내에 없고 홈택스 시스템에서 관리하는 값이기 때문에 외부에서 전달 받아야 한다."""
     scraper.request_permission('teet')
     etan = etan.replace('-', '')
     res = scraper.session.post("https://teet.hometax.go.kr/wqAction.do",
