@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import re
-import subprocess
 import time
 from datetime import datetime
 from http import HTTPStatus
@@ -21,7 +20,7 @@ from curl_cffi.requests import Session
 
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
-from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4, snake_oil_encrypt
+from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4, snake_oil_encrypt, extract_rand_num_from_pfx
 from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자, 세무대리인, 세무대리수임정보
 from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xml_response, parse_response, \
     check_error_on_response, json_minified_dumps
@@ -73,14 +72,9 @@ class HometaxScraper:
             validate_cert_expiry(sign)
 
         if len(cert_paths) == 1:
-            p = subprocess.Popen(['openssl', 'pkcs12', '-info', '-provider', 'legacy', '-provider', 'default',
-                                  '-in', cert_paths[0], '-nodes', '-nocerts', '-passin',
-                                  f'pass:{prikey_password}'], stdout=subprocess.PIPE)
-            prikey_dumped, _ = p.communicate()
-            ID_KISA_NPKI_RAND_NUM = '1.2.410.200004.10.1.1.3'
-            result = re.search(f'{ID_KISA_NPKI_RAND_NUM}: (.*)\n-----BEGIN PRIVATE KEY-----', prikey_dumped.decode())
-            rand_num = result.group(1)
-            randomEnc = base64.b64encode(bytearray.fromhex(rand_num)).decode('utf8')
+            with open(cert_paths[0], 'rb') as f:
+                rand_num = extract_rand_num_from_pfx(f.read(), prikey_password)
+            randomEnc = base64.b64encode(rand_num).decode('utf8')
         else:
             randomEnc = base64.b64encode(sign._rand_num.asOctets()).decode('utf-8')
 
@@ -149,14 +143,9 @@ class HometaxScraper:
             sign = load_cert(files, prikey_password)
 
         if len(cert_paths) == 1:
-            p = subprocess.Popen(['openssl', 'pkcs12', '-info', '-provider', 'legacy', '-provider', 'default',
-                                  '-in', cert_paths[0], '-nodes', '-nocerts', '-passin',
-                                  f'pass:{prikey_password}'], stdout=subprocess.PIPE)
-            prikey_dumped, _ = p.communicate()
-            ID_KISA_NPKI_RAND_NUM = '1.2.410.200004.10.1.1.3'
-            result = re.search(f'{ID_KISA_NPKI_RAND_NUM}: (.*)\n-----BEGIN PRIVATE KEY-----', prikey_dumped.decode())
-            rand_num = result.group(1)
-            randomEnc = base64.b64encode(bytearray.fromhex(rand_num)).decode('utf8')
+            with open(cert_paths[0], 'rb') as f:
+                rand_num = extract_rand_num_from_pfx(f.read(), prikey_password)
+            randomEnc = base64.b64encode(rand_num).decode('utf8')
         else:
             randomEnc = base64.b64encode(sign._rand_num.asOctets()).decode('utf-8')
 

@@ -1,16 +1,131 @@
 import base64
 import hashlib
 import hmac
+import math
 import re
 import typing
 from contextlib import contextmanager, ExitStack
 from datetime import date, datetime
 from typing import List
 
+from Crypto.Cipher import ARC2
 from OpenSSL import crypto
+from asn1crypto import pkcs12 as asn1_pkcs12, algos as asn1_algos
 from pypinksign import pypinksign
 
 from hometaxbot import InvalidCertificate, HometaxException
+
+
+ID_KISA_NPKI_RAND_NUM = '1.2.410.200004.10.1.1.3'
+
+
+def _pkcs12_kdf(password_bytes, salt, iterations, key_length, id_byte=1):
+    """PKCS#12 key derivation function (RFC 7292, Appendix B)"""
+    v = 64  # SHA-1 block size
+    D = bytes([id_byte]) * v
+    S = (salt * (v // len(salt) + 1))[:v * math.ceil(len(salt) / v)] if salt else b''
+    P = (password_bytes * (v // len(password_bytes) + 1))[:v * math.ceil(len(password_bytes) / v)] if password_bytes else b''
+    I = S + P
+    result = b''
+    while len(result) < key_length:
+        A = D + I
+        for _ in range(iterations):
+            A = hashlib.sha1(A).digest()
+        result += A
+        if len(result) >= key_length:
+            break
+        B = (A * (v // len(A) + 1))[:v]
+        new_I = b''
+        for j in range(len(I) // v):
+            block = I[j * v:(j + 1) * v]
+            carry = 1
+            new_block = bytearray(v)
+            for k in range(v - 1, -1, -1):
+                temp = block[k] + B[k] + carry
+                new_block[k] = temp & 0xff
+                carry = temp >> 8
+            new_I += bytes(new_block)
+        I = new_I
+    return result[:key_length]
+
+
+def extract_rand_num_from_pfx(pfx_data: bytes, password: str) -> bytes:
+    """PFX 파일에서 KISA NPKI rand_num (OID 1.2.410.200004.10.1.1.3)을 추출한다."""
+    from pyasn1.codec.der import encoder
+    from pyasn1.type.univ import ObjectIdentifier
+
+    oid_der = encoder.encode(ObjectIdentifier(tuple(int(x) for x in ID_KISA_NPKI_RAND_NUM.split('.'))))
+
+    pfx = asn1_pkcs12.Pfx.load(pfx_data)
+    content_bytes = pfx['auth_safe']['content'].native
+    auth_safe = asn1_pkcs12.AuthenticatedSafe.load(content_bytes)
+
+    pwd_bytes = password.encode('utf-16-be') + b'\x00\x00'
+
+    for ci in auth_safe:
+        ct = ci['content_type'].native
+
+        if ct == 'data':
+            # 평문 SafeContents에서 검색
+            result = _find_kisa_rand_num(ci['content'].native, oid_der)
+            if result is not None:
+                return result
+
+        elif ct == 'encrypted_data':
+            enc_data = ci['content']
+            eci = enc_data['encrypted_content_info']
+            algo = eci['content_encryption_algorithm']
+            algo_oid = algo['algorithm'].dotted
+            pbe_params = asn1_algos.Pbes1Params.load(algo['parameters'].dump())
+            salt = pbe_params['salt'].native
+            iterations = pbe_params['iterations'].native
+            encrypted_bytes = eci['encrypted_content'].native
+
+            if algo_oid == '1.2.840.113549.1.12.1.6':
+                # pbeWithSHAAnd40BitRC2-CBC
+                key = _pkcs12_kdf(pwd_bytes, salt, iterations, 5, id_byte=1)
+                iv = _pkcs12_kdf(pwd_bytes, salt, iterations, 8, id_byte=2)
+                cipher = ARC2.new(key, ARC2.MODE_CBC, iv, effective_keylen=40)
+            elif algo_oid == '1.2.840.113549.1.12.1.3':
+                # pbeWithSHAAnd3-KeyTripleDES-CBC
+                from Crypto.Cipher import DES3
+                key = _pkcs12_kdf(pwd_bytes, salt, iterations, 24, id_byte=1)
+                iv = _pkcs12_kdf(pwd_bytes, salt, iterations, 8, id_byte=2)
+                cipher = DES3.new(key, DES3.MODE_CBC, iv)
+            else:
+                continue
+
+            decrypted = cipher.decrypt(encrypted_bytes)
+            decrypted = decrypted[:-decrypted[-1]]
+            result = _find_kisa_rand_num(decrypted, oid_der)
+            if result is not None:
+                return result
+
+    raise HometaxException('PFX 파일에서 KISA rand_num을 찾을 수 없습니다.')
+
+
+def _find_kisa_rand_num(decrypted_safe_contents: bytes, oid_der: bytes) -> bytes:
+    """복호화된 SafeContents에서 KISA rand_num OID의 값을 찾는다."""
+    safe_contents = asn1_pkcs12.SafeContents.load(decrypted_safe_contents)
+    for bag in safe_contents:
+        if bag['bag_id'].native != 'key_bag':
+            continue
+        bag_der = bag['bag_value'].dump()
+        idx = bag_der.find(oid_der)
+        if idx < 0:
+            continue
+        # OID 뒤: SET { OCTET STRING { value } }
+        remaining = bag_der[idx + len(oid_der):]
+        set_length = remaining[1]
+        set_content = remaining[2:2 + set_length]
+        # OCTET STRING 내부
+        os_length = set_content[1]
+        rand_num = set_content[2:2 + os_length]
+        # ASN.1 INTEGER 부호 패딩 (0x00) 제거
+        if rand_num[0] == 0:
+            rand_num = rand_num[1:]
+        return rand_num
+    return None
 
 
 @contextmanager

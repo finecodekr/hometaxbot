@@ -20,6 +20,7 @@ dependencies = [
     "requests",
     "typer",
     "curl_cffi",
+    "asn1crypto",
 ]
 [project.urls]
 Home = "https://github.com/finecodekr/hometaxbot"
