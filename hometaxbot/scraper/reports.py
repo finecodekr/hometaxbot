@@ -10,8 +10,6 @@ from typing import Generator, Dict
 from urllib.parse import unquote
 
 import dateutil.parser
-import httpx
-
 from hometaxbot import models, HometaxException
 from hometaxbot.scraper import HometaxScraper, model_from_hometax_json, json_minified_dumps
 
@@ -237,55 +235,52 @@ def 신고서_납부서(scraper: HometaxScraper, 세목: models.세목코드, be
                 'clipUID': clip_uid,
                 's_time': s_time()
             })
-            with httpx.Client(http2=True, cookies=scraper.session.cookies) as client:
-                res = client.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
-                    "ClipID": "R09S3",
-                    "uid": clip_uid,
-                    "clipUID": clip_uid,
-                    "path": "/serp",
-                    "optionValue": '{"exportType":2,"name":"JUVDJUEwJTg0JUVDJUIyJUI0JUVDJUEwJTgxJUVDJTlBJUE5","pageType":1,"startNum":1,"endNum":1,"option":{"isSplite":false,"spliteValue":1,"userpw":"","textToImage":false,"importOriginImage":false,"removeHyperlink":false,"fileNames":[],"splitPage":0}}',
-                    "is_ie": 'true',
-                    "exportN": "JUVDJUEwJTg0JUVDJUIyJUI0JUVDJUEwJTgxJUVDJTlBJUE5",
-                    "exportType": 2,
-                    "isSmartPhone": 'false',
-                }, headers={
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                    "Accept-Encoding": "gzip, deflate, br, zstd",
-                    "Accept-Language": "ko,en-US;q=0.9,en;q=0.8,ko-KR;q=0.7,ja;q=0.6",
-                    "Cache-Control": "max-age=0",
-                    "Connection": "keep-alive",
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Host": "sesw.hometax.go.kr",
-                    "Origin": "https://sesw.hometax.go.kr",
-                    "Referer": "https://sesw.hometax.go.kr/serp/clipreport.do",
-                    "Sec-Fetch-Dest": "iframe",
-                    "Sec-Fetch-Mode": "navigate",
-                    "Sec-Fetch-Site": "same-origin",
-                    "Sec-Fetch-User": "?1",
-                    "Upgrade-Insecure-Requests": "1",
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-                    "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
-                    "sec-ch-ua-mobile": "?0",
-                    "sec-ch-ua-platform": '"macOS"'
-                })
+            res = scraper.session.post('https://sesw.hometax.go.kr/serp/ClipReport4/Clip.jsp', data={
+                "ClipID": "R09S3",
+                "uid": clip_uid,
+                "clipUID": clip_uid,
+                "path": "/serp",
+                "optionValue": '{"exportType":2,"name":"JUVDJUEwJTg0JUVDJUIyJUI0JUVDJUEwJTgxJUVDJTlBJUE5","pageType":1,"startNum":1,"endNum":1,"option":{"isSplite":false,"spliteValue":1,"userpw":"","textToImage":false,"importOriginImage":false,"removeHyperlink":false,"fileNames":[],"splitPage":0}}',
+                "is_ie": 'true',
+                "exportN": "JUVDJUEwJTg0JUVDJUIyJUI0JUVDJUEwJTgxJUVDJTlBJUE5",
+                "exportType": 2,
+                "isSmartPhone": 'false',
+            }, headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br, zstd",
+                "Accept-Language": "ko,en-US;q=0.9,en;q=0.8,ko-KR;q=0.7,ja;q=0.6",
+                "Cache-Control": "max-age=0",
+                "Connection": "keep-alive",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Host": "sesw.hometax.go.kr",
+                "Origin": "https://sesw.hometax.go.kr",
+                "Referer": "https://sesw.hometax.go.kr/serp/clipreport.do",
+                "Sec-Fetch-Dest": "iframe",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "same-origin",
+                "Sec-Fetch-User": "?1",
+                "Upgrade-Insecure-Requests": "1",
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"macOS"'
+            })
 
-                yield models.전자신고_신고서_납부서(
-                    납세자=납세자_obj,
-                    # 신고내역=models.신고내역(),
-                    신고서_data=신고서_data,
-                    납부내역=models.납부내역(
-                        세무서코드=bill['txhfOgzCd'],
-                        세무서명=bill['ogzNm'],
-                        납부일=dateutil.parser.parse(bill['trtpDdt']),
-                        금액=bill['ogntxSbtrPmtTxamt'],
-                        전자납부발행번호=bill['elctPmtPblNo'],
-                        신고연월=bill['itrfYm'],
-                        결정구분=bill['dcsClCd'],
-                        세목=bill['itrfNm'],
-                        세목코드=bill['itrfCd'],
-                    ),
-                    납부서_pdf=BytesIO(res.content),
-                )
+            yield models.전자신고_신고서_납부서(
+                납세자=납세자_obj,
+                # 신고내역=models.신고내역(),
+                신고서_data=신고서_data,
+                납부내역=models.납부내역(
+                    세무서코드=bill['txhfOgzCd'],
+                    세무서명=bill['ogzNm'],
+                    납부일=dateutil.parser.parse(bill['trtpDdt']),
+                    금액=bill['ogntxSbtrPmtTxamt'],
+                    전자납부발행번호=bill['elctPmtPblNo'],
+                    신고연월=bill['itrfYm'],
+                    결정구분=bill['dcsClCd'],
+                    세목=bill['itrfNm'],
+                    세목코드=bill['itrfCd'],
+                ),
+                납부서_pdf=BytesIO(res.content),
+            )
 
 
 def s_time():

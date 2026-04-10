@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import re
-import ssl
 import subprocess
 import time
 from datetime import datetime
@@ -13,17 +12,19 @@ from urllib.parse import unquote_plus, unquote
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element
 
-import requests
 import yaml
 from cryptography.hazmat.primitives._serialization import Encoding
-from requests import JSONDecodeError
+from json import JSONDecodeError
+
+from curl_cffi import requests
+from curl_cffi.requests import Session
 
 from hometaxbot import HometaxException
 from hometaxbot import random_second, AuthenticationFailed, Throttled
 from hometaxbot.crypto import load_cert, open_files, validate_cert_expiry, k4, snake_oil_encrypt
 from hometaxbot.models import 홈택스사용자구분코드, 홈택스사용자, 납세자, 세무대리인, 세무대리수임정보
 from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xml_response, parse_response, \
-    check_error_on_response, CustomHttpAdapter, json_minified_dumps
+    check_error_on_response, json_minified_dumps
 
 
 class HometaxScraper:
@@ -41,14 +42,7 @@ class HometaxScraper:
     subdomain: str = None
 
     def __init__(self):
-        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-        ctx.options |= 0x4  # OP_LEGACY_SERVER_CONNECT
-        self.session = requests.session()
-        self.session.mount('https://', CustomHttpAdapter(ctx))
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        })
-        # self.session.headers['Content-Type'] = 'application/json'
+        self.session = Session(impersonate="chrome136")
         self.cta_admin_no = None
 
     def login_with_cert(self, cert_paths: List[str], prikey_password):
@@ -240,22 +234,20 @@ class HometaxScraper:
         짧은 시간 안에 여러 번 스크래핑할 때는 반복적으로 공동인증서 로그인을 사용하기보다 한 번 로그인하고 그 쿠키를 재활용한다.
         """
         for cookie in cookies:
-            if 'sameSite' in cookie:
-                del cookie['sameSite']
-
-            if 'httpOnly' in cookie:
-                http_only = cookie.pop('httpOnly')
-                cookie['rest'] = {'httpOnly': http_only}
-            if 'expiry' in cookie:
-                cookie['expires'] = cookie.pop('expiry')
-            self.session.cookies.set(**cookie)
+            self.session.cookies.set(
+                name=cookie['name'],
+                value=cookie['value'],
+                domain=cookie.get('domain', ''),
+                path=cookie.get('path', '/'),
+                secure=cookie.get('secure', False),
+            )
 
         self.fetch_user_and_traders()
 
     def cookies(self):
         COOKIE_ATTRS = ["version", "name", "value", "port", "domain", "path", "secure", "expires", "discard", "comment",
                         "comment_url", "rfc2109"]
-        return [{attr: getattr(cookie, attr) for attr in COOKIE_ATTRS} for cookie in self.session.cookies]
+        return [{attr: getattr(cookie, attr) for attr in COOKIE_ATTRS} for cookie in self.session.cookies.jar]
 
     def request_action_xml(self, action_id, screen_id, real_screen_id='', payload: str = None):
         return ensure_xml_response(self.request_action,

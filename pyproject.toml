@@ -19,7 +19,7 @@ dependencies = [
     "idna",
     "requests",
     "typer",
-    "httpx[http2]",
+    "curl_cffi",
 ]
 [project.urls]
 Home = "https://github.com/finecodekr/hometaxbot"
