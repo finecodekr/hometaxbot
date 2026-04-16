@@ -49,6 +49,25 @@ def _pkcs12_kdf(password_bytes, salt, iterations, key_length, id_byte=1):
     return result[:key_length]
 
 
+def _decrypt_pbe(algo_oid, pwd_bytes, salt, iterations, encrypted_bytes):
+    """PBE 알고리즘으로 암호화된 데이터를 복호화한다."""
+    if algo_oid == '1.2.840.113549.1.12.1.6':
+        # pbeWithSHAAnd40BitRC2-CBC
+        key = _pkcs12_kdf(pwd_bytes, salt, iterations, 5, id_byte=1)
+        iv = _pkcs12_kdf(pwd_bytes, salt, iterations, 8, id_byte=2)
+        cipher = ARC2.new(key, ARC2.MODE_CBC, iv, effective_keylen=40)
+    elif algo_oid == '1.2.840.113549.1.12.1.3':
+        # pbeWithSHAAnd3-KeyTripleDES-CBC
+        from Crypto.Cipher import DES3
+        key = _pkcs12_kdf(pwd_bytes, salt, iterations, 24, id_byte=1)
+        iv = _pkcs12_kdf(pwd_bytes, salt, iterations, 8, id_byte=2)
+        cipher = DES3.new(key, DES3.MODE_CBC, iv)
+    else:
+        return None
+    decrypted = cipher.decrypt(encrypted_bytes)
+    return decrypted[:-decrypted[-1]]
+
+
 def extract_rand_num_from_pfx(pfx_data: bytes, password: str) -> bytes:
     """PFX 파일에서 KISA NPKI rand_num (OID 1.2.410.200004.10.1.1.3)을 추출한다."""
     from pyasn1.codec.der import encoder
@@ -66,10 +85,27 @@ def extract_rand_num_from_pfx(pfx_data: bytes, password: str) -> bytes:
         ct = ci['content_type'].native
 
         if ct == 'data':
-            # 평문 SafeContents에서 검색
-            result = _find_kisa_rand_num(ci['content'].native, oid_der)
-            if result is not None:
-                return result
+            safe_contents = asn1_pkcs12.SafeContents.load(ci['content'].native)
+            for bag in safe_contents:
+                bag_id = bag['bag_id'].native
+
+                if bag_id == 'key_bag':
+                    result = _find_kisa_rand_num_in_bytes(bag['bag_value'].dump(), oid_der)
+                    if result is not None:
+                        return result
+
+                elif bag_id == 'pkcs8_shrouded_key_bag':
+                    val = bag['bag_value']
+                    algo = val['encryption_algorithm']
+                    algo_oid = algo['algorithm'].dotted
+                    salt = algo['parameters']['salt'].native
+                    iterations = algo['parameters']['iterations'].native
+                    encrypted_bytes = val['encrypted_data'].native
+                    decrypted = _decrypt_pbe(algo_oid, pwd_bytes, salt, iterations, encrypted_bytes)
+                    if decrypted is not None:
+                        result = _find_kisa_rand_num_in_bytes(decrypted, oid_der)
+                        if result is not None:
+                            return result
 
         elif ct == 'encrypted_data':
             enc_data = ci['content']
@@ -80,51 +116,40 @@ def extract_rand_num_from_pfx(pfx_data: bytes, password: str) -> bytes:
             salt = pbe_params['salt'].native
             iterations = pbe_params['iterations'].native
             encrypted_bytes = eci['encrypted_content'].native
-
-            if algo_oid == '1.2.840.113549.1.12.1.6':
-                # pbeWithSHAAnd40BitRC2-CBC
-                key = _pkcs12_kdf(pwd_bytes, salt, iterations, 5, id_byte=1)
-                iv = _pkcs12_kdf(pwd_bytes, salt, iterations, 8, id_byte=2)
-                cipher = ARC2.new(key, ARC2.MODE_CBC, iv, effective_keylen=40)
-            elif algo_oid == '1.2.840.113549.1.12.1.3':
-                # pbeWithSHAAnd3-KeyTripleDES-CBC
-                from Crypto.Cipher import DES3
-                key = _pkcs12_kdf(pwd_bytes, salt, iterations, 24, id_byte=1)
-                iv = _pkcs12_kdf(pwd_bytes, salt, iterations, 8, id_byte=2)
-                cipher = DES3.new(key, DES3.MODE_CBC, iv)
-            else:
-                continue
-
-            decrypted = cipher.decrypt(encrypted_bytes)
-            decrypted = decrypted[:-decrypted[-1]]
-            result = _find_kisa_rand_num(decrypted, oid_der)
-            if result is not None:
-                return result
+            decrypted = _decrypt_pbe(algo_oid, pwd_bytes, salt, iterations, encrypted_bytes)
+            if decrypted is not None:
+                result = _find_kisa_rand_num(decrypted, oid_der)
+                if result is not None:
+                    return result
 
     raise HometaxException('PFX 파일에서 KISA rand_num을 찾을 수 없습니다.')
+
+
+def _find_kisa_rand_num_in_bytes(data: bytes, oid_der: bytes) -> bytes:
+    """바이트 데이터에서 KISA rand_num OID의 값을 찾는다."""
+    idx = data.find(oid_der)
+    if idx < 0:
+        return None
+    # OID 뒤: SET { OCTET STRING { value } }
+    remaining = data[idx + len(oid_der):]
+    set_length = remaining[1]
+    set_content = remaining[2:2 + set_length]
+    # OCTET STRING 내부
+    os_length = set_content[1]
+    rand_num = set_content[2:2 + os_length]
+    # ASN.1 INTEGER 부호 패딩 (0x00) 제거
+    if rand_num[0] == 0:
+        rand_num = rand_num[1:]
+    return rand_num
 
 
 def _find_kisa_rand_num(decrypted_safe_contents: bytes, oid_der: bytes) -> bytes:
     """복호화된 SafeContents에서 KISA rand_num OID의 값을 찾는다."""
     safe_contents = asn1_pkcs12.SafeContents.load(decrypted_safe_contents)
     for bag in safe_contents:
-        if bag['bag_id'].native != 'key_bag':
-            continue
-        bag_der = bag['bag_value'].dump()
-        idx = bag_der.find(oid_der)
-        if idx < 0:
-            continue
-        # OID 뒤: SET { OCTET STRING { value } }
-        remaining = bag_der[idx + len(oid_der):]
-        set_length = remaining[1]
-        set_content = remaining[2:2 + set_length]
-        # OCTET STRING 내부
-        os_length = set_content[1]
-        rand_num = set_content[2:2 + os_length]
-        # ASN.1 INTEGER 부호 패딩 (0x00) 제거
-        if rand_num[0] == 0:
-            rand_num = rand_num[1:]
-        return rand_num
+        result = _find_kisa_rand_num_in_bytes(bag['bag_value'].dump(), oid_der)
+        if result is not None:
+            return result
     return None
 
 
