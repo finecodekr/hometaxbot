@@ -39,7 +39,7 @@ class HometaxDriver:
                        "safebrowsing.enabled": True}
         options.add_experimental_option("prefs", preferences)
 
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        self.driver = webdriver.Chrome(service=Service(), options=options)
 
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.driver.execute_cdp_cmd("Page.enable", {})
