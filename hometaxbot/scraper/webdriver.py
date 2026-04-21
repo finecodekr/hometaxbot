@@ -106,7 +106,7 @@ class HometaxDriver:
 
     def begin_simple_authentication(self, provider, realname, birthday: date, phone_number):
         self.home()
-        self.wait_and_click(By.LINK_TEXT, '간편인증')
+        self.wait_and_click(By.LINK_TEXT, '개인용\n간편인증')
 
         self.wait(By.ID, 'mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
         self.driver.switch_to.frame('mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
