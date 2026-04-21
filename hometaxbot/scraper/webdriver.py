@@ -106,12 +106,13 @@ class HometaxDriver:
 
     def begin_simple_authentication(self, provider, realname, birthday: date, phone_number):
         self.home()
-        self.wait_and_click(By.LINK_TEXT, '개인용\n간편인증')
+        el = WebDriverWait(self.driver, WAIT_LONG).until(
+            expected_conditions.presence_of_element_located((By.XPATH, '//a[contains(.,"간편인증") and contains(.,"개인용")]')))
+        self.driver.execute_script('arguments[0].click();', el)
 
         self.wait(By.ID, 'mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
         self.driver.switch_to.frame('mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
         self.wait(By.ID, 'oacxEmbededContents')
-        # self.wait(By.ID, 'oacx-request-btn-pc')
 
         self.driver.find_element(By.CSS_SELECTOR, f'span[aria-label="{provider}"]').click()
         self.driver.find_element(By.ID, 'oacx_name').send_keys(realname)
