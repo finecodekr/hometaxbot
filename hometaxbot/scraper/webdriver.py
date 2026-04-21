@@ -1,5 +1,6 @@
 import base64
 import logging
+import shutil
 import re
 import time
 from datetime import date
@@ -39,7 +40,8 @@ class HometaxDriver:
                        "safebrowsing.enabled": True}
         options.add_experimental_option("prefs", preferences)
 
-        self.driver = webdriver.Chrome(service=Service(), options=options)
+        chromedriver = shutil.which('chromedriver')
+        self.driver = webdriver.Chrome(service=Service(chromedriver), options=options)
 
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.driver.execute_cdp_cmd("Page.enable", {})
