@@ -112,8 +112,8 @@ class HometaxDriver:
             expected_conditions.presence_of_element_located((By.XPATH, '//a[contains(.,"간편인증") and contains(.,"개인용")]')))
         self.driver.execute_script('arguments[0].click();', el)
 
-        self.wait(By.ID, 'mf_txppWframe_UTECMADA02_wframe_simple_iframeView')
-        self.driver.switch_to.frame('mf_txppWframe_UTECMADA02_wframe_simple_iframeView')
+        self.wait(By.ID, 'mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
+        self.driver.switch_to.frame('mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
         self.wait(By.ID, 'oacxEmbededContents')
 
         self.driver.find_element(By.CSS_SELECTOR, f'span[aria-label="{provider}"]').click()
