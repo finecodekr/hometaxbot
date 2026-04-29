@@ -11,6 +11,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
@@ -106,7 +107,7 @@ class HometaxDriver:
             self.wait_and_click(By.XPATH, '//input[@value="로그인"]')
             break
 
-    def begin_simple_authentication(self, provider, realname, birthday: date, phone_number):
+    def begin_simple_authentication(self, provider, realname, birthday: date, phone_number, telecom_carrier=None):
         self.home()
         el = WebDriverWait(self.driver, WAIT_LONG).until(
             expected_conditions.presence_of_element_located((By.XPATH, '//a[contains(.,"간편인증") and contains(.,"개인용")]')))
@@ -120,6 +121,8 @@ class HometaxDriver:
         self.driver.find_element(By.XPATH, f'//span[p[normalize-space(text())="{provider}"]]').click()
         self.driver.find_element(By.ID, 'oacx_name').send_keys(realname)
         self.driver.find_element(By.ID, 'oacx_birth').send_keys(birthday.strftime('%Y%m%d'))
+        if telecom_carrier:
+            Select(self.driver.find_element(By.CSS_SELECTOR, 'select[data-id="oacx_phone0"]')).select_by_value(telecom_carrier[0])
 
         self.driver.find_element(By.CSS_SELECTOR, 'select[data-id="oacx_phone1"]').send_keys(phone_number[:3])
         self.driver.find_element(By.ID, 'oacx_phone2').send_keys(phone_number[3:])
