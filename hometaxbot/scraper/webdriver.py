@@ -116,7 +116,8 @@ class HometaxDriver:
         self.driver.switch_to.frame('mf_txppWframe_loginboxFrame_UTECMADA02_wframe_simple_iframeView')
         self.wait(By.ID, 'oacxEmbededContents')
 
-        self.driver.find_element(By.CSS_SELECTOR, f'span[aria-label="{provider}"]').click()
+        # self.driver.find_element(By.CSS_SELECTOR, f'span[aria-label="{provider}"]').click()
+        self.driver.find_element(By.XPATH, f'//span[p[normalize-space(text())="{provider}"]]').click()
         self.driver.find_element(By.ID, 'oacx_name').send_keys(realname)
         self.driver.find_element(By.ID, 'oacx_birth').send_keys(birthday.strftime('%Y%m%d'))
 
