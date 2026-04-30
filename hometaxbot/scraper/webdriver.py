@@ -119,13 +119,13 @@ class HometaxDriver:
 
         # self.driver.find_element(By.CSS_SELECTOR, f'span[aria-label="{provider}"]').click()
         self.driver.find_element(By.XPATH, f'//span[p[contains(normalize-space(.), "{provider}")]]').click()
-        self.driver.find_element(By.ID, 'oacx_name').send_keys(realname)
-        self.driver.find_element(By.ID, 'oacx_birth').send_keys(birthday.strftime('%Y%m%d'))
+        self.driver.find_element(By.CSS_SELECTOR, '[data-id="oacx_name"]').send_keys(realname)
+        self.driver.find_element(By.CSS_SELECTOR, '[data-id="oacx_birth"]').send_keys(birthday.strftime('%Y%m%d'))
         if telecom_carrier:
             Select(self.driver.find_element(By.CSS_SELECTOR, 'select[data-id="oacx_phone0"]')).select_by_value(telecom_carrier[0])
 
         self.driver.find_element(By.CSS_SELECTOR, 'select[data-id="oacx_phone1"]').send_keys(phone_number[:3])
-        self.driver.find_element(By.ID, 'oacx_phone2').send_keys(phone_number[3:])
+        self.driver.find_element(By.CSS_SELECTOR, '[data-id="oacx_phone2"]').send_keys(phone_number[3:])
 
         self.driver.find_element(By.ID, 'totalAgree').click()
         self.driver.find_element(By.ID, 'oacx-request-btn-pc').click()
