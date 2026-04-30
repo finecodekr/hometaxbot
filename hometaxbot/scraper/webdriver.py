@@ -25,7 +25,7 @@ class HometaxDriver:
     def __init__(self, download_folder=None, headless=True):
         options = webdriver.ChromeOptions()
         if headless:
-            options.add_argument('--headless')
+            options.add_argument('--headless=new')
 
         options.add_argument('--no-sandbox')  # https://github.com/theintern/intern/issues/878
         options.add_argument(
