@@ -2,6 +2,7 @@ import base64
 import logging
 import shutil
 import re
+import tempfile
 import time
 from datetime import date
 from pathlib import Path
@@ -31,6 +32,9 @@ class HometaxDriver:
         options.add_argument(
             '--disable-dev-shm-usage')  # https://developers.google.com/web/tools/puppeteer/troubleshooting - Tips
 
+        self._user_data_dir = tempfile.mkdtemp(prefix='hometaxbot-chrome-')
+        options.add_argument(f'--user-data-dir={self._user_data_dir}')
+
         caps = options.to_capabilities()
         caps["goog:loggingPrefs"] = {"performance": "ALL"}
 
@@ -51,7 +55,10 @@ class HometaxDriver:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.quit()
+        try:
+            self.driver.quit()
+        finally:
+            shutil.rmtree(self._user_data_dir, ignore_errors=True)
 
     def login_with_cert(self, cert_path, password):
         self.home()
