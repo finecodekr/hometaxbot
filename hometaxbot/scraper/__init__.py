@@ -26,6 +26,9 @@ from hometaxbot.scraper.requestutil import nts_generate_random_string, ensure_xm
     check_error_on_response, json_minified_dumps
 
 
+logger = logging.getLogger(__name__)
+
+
 class HometaxScraper:
     LOGIN_SUCCESS_CODE = 'S'
     HOMETAX_REQUEST_TIMEOUT = 7
@@ -370,7 +373,11 @@ class HometaxScraper:
 
         detail = res.json().get('bmanBscInfrInqrDVOList')
         if detail is None:
-            raise Throttled('사업자 등록사항을 불러오지 못했습니다. 다시 시도해주세요.')
+            result_msg = res.json().get('resultMsg', {})
+            if result_msg.get('code') != 'pubcPermission':
+                raise Throttled('사업자 등록사항을 불러오지 못했습니다. 다시 시도해주세요.')
+            logger.warning('사업자 등록사항 상세조회 권한이 없어 기본 사업자 정보만 사용합니다.')
+            detail = []
 
         사업자상태 = element.get('txprStatNm')
         사업자등록사항 = next(

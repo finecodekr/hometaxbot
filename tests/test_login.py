@@ -4,6 +4,7 @@ from datetime import date
 
 import dateutil.parser
 
+from hometaxbot.scraper.browser import HometaxController
 from hometaxbot.scraper.webdriver import HometaxDriver
 from tests import testdata
 
@@ -46,6 +47,18 @@ class TestHometaxLogin(unittest.TestCase):
         self.assertEqual(6, len(수임.세무대리인.관리번호))
 
         self.assertEqual('과세', scraper.사업자등록상태()['면세구분'])
+
+    def test_userid_password(self):
+        with HometaxController() as controller:
+            controller.login_with_userid(testdata.ACCOUNT_USERNAME, testdata.ACCOUNT_PASSWORD, testdata.ACCOUNT_REGISTRATION_NO)
+            scraper = HometaxScraper()
+            scraper.login_with_cookies(controller.cookies())
+            self.assertEqual(홈택스사용자구분코드.법인사업자, scraper.user_info.사용자구분)
+            self.assertIn(testdata.ACCOUNT_COMPANY, scraper.user_info.납세자명)
+
+            self.assertEqual(scraper.selected_trader.사업자구분, 홈택스사용자구분코드.법인사업자)
+            self.assertEqual(10, len(scraper.selected_trader.납세자번호))
+
 
 
 class TestSimpleAuth(unittest.TestCase):
