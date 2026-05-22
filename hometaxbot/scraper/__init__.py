@@ -46,6 +46,7 @@ class HometaxScraper:
     def __init__(self):
         self.session = Session(impersonate="chrome136")
         self.cta_admin_no = None
+        self.cert_uniq_no = None
 
     def login_with_cert(self, cert_paths: List[str], prikey_password):
         """
@@ -187,7 +188,9 @@ class HometaxScraper:
                                 data='<map id="postParam"><popupYn>false</popupYn></map>'.encode('utf-8'),
                                 headers={'Content-Type': "application/xml; charset=UTF-8"}).json()
         self.check_authenticated(res_json)
-        pubcUserNo = res_json['resultMsg']['sessionMap']['pubcUserNo']
+        session_map = res_json['resultMsg']['sessionMap']
+        pubcUserNo = session_map['pubcUserNo']
+        self.cert_uniq_no = session_map.get('crtfUqno')
         nts = random_second()
         res_json = self.request_action(
             action_id='ATXPPAAA001R22',
