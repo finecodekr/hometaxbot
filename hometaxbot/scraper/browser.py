@@ -3,6 +3,8 @@ from pathlib import Path
 
 from playwright.sync_api import Error as PlaywrightError, Page, sync_playwright
 
+from hometaxbot import AuthenticationFailed
+
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +112,7 @@ class HometaxController:
 
         self.page.locator("#mf_txppWframe_loginboxFrame_iptUserId").fill(username)
         self.page.locator("#mf_txppWframe_loginboxFrame_iptUserPw").fill(password)
+        dialog_count = len(self.dialog_messages)
         self.page.locator("input.btn_idlogin:visible").click()
         logger.info("홈택스 아이디/비밀번호 제출")
 
@@ -117,12 +120,39 @@ class HometaxController:
         if len(digits) < 7:
             raise ValueError("registration_no는 주민등록번호 앞 7자리가 필요합니다.")
 
-        self.page.locator('input[name="iptUserJuminNo1"]:visible').fill(digits[:6])
+        jumin1 = self.page.locator('input[name="iptUserJuminNo1"]:visible')
+        for _ in range(30):
+            if len(self.dialog_messages) > dialog_count:
+                raise AuthenticationFailed(self.dialog_messages[-1])
+            try:
+                jumin1.wait_for(timeout=1000)
+                break
+            except PlaywrightError:
+                continue
+        else:
+            if len(self.dialog_messages) > dialog_count:
+                raise AuthenticationFailed(self.dialog_messages[-1])
+            raise AuthenticationFailed("시간 초과로 로그인에 실패했습니다.")
+
+        jumin1.fill(digits[:6])
         self.page.locator('input[name="iptUserJuminNo2"]:visible').fill(digits[6])
+        dialog_count = len(self.dialog_messages)
         self.page.locator('input[value="확인"]:visible').click()
         logger.info("아이디 로그인 2차 인증 제출")
 
-        self.page.locator("a[title='로그아웃']").text_content()
+        logout_button = self.page.locator("a[title='로그아웃']")
+        for _ in range(30):
+            if len(self.dialog_messages) > dialog_count:
+                raise AuthenticationFailed(self.dialog_messages[-1])
+            try:
+                logout_button.wait_for(timeout=1000)
+                break
+            except PlaywrightError:
+                continue
+        else:
+            if len(self.dialog_messages) > dialog_count:
+                raise AuthenticationFailed(self.dialog_messages[-1])
+            raise AuthenticationFailed("시간 초과로 로그인에 실패했습니다.")
         self.page.get_by_text("님께 추천하는 메뉴").or_(
             self.page.get_by_text("세무 업무 가이드 맵")
         ).or_(

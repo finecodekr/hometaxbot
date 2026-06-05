@@ -4,6 +4,7 @@ from datetime import date
 
 import dateutil.parser
 
+from hometaxbot import AuthenticationFailed
 from hometaxbot.scraper.browser import HometaxController
 from hometaxbot.scraper.webdriver import HometaxDriver
 from tests import testdata
@@ -59,6 +60,19 @@ class TestHometaxLogin(unittest.TestCase):
             self.assertEqual(scraper.selected_trader.사업자구분, 홈택스사용자구분코드.법인사업자)
             self.assertEqual(10, len(scraper.selected_trader.납세자번호))
 
+    def test_userid_error_message(self):
+        # 절대 실제 username을 쓰면 안 됨 (비밀번호 오류로 계정이 차단될 수 있음).
+        # 존재하지 않는 랜덤 계정으로 로그인을 시도해 dialog 에러 메시지가
+        # AuthenticationFailed 예외로 잘 전달되는지 확인한다.
+        random_username = 'finecode_nope_zzx9q7k'
+        random_password = 'wrong-pw-3l8x2v6a!'
+        with HometaxController() as controller:
+            with self.assertRaises(AuthenticationFailed) as ctx:
+                controller.login_with_userid(
+                    random_username, random_password, testdata.ACCOUNT_REGISTRATION_NO)
+            message = str(ctx.exception)
+            print(f'AuthenticationFailed message: {message!r}')
+            self.assertTrue(message.strip(), 'dialog 에러 메시지가 비어 있음')
 
 
 class TestSimpleAuth(unittest.TestCase):
