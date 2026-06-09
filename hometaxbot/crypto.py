@@ -210,13 +210,32 @@ def nts_hash_param(payload):
 # 홈택스 js소스에 구현된 k1~k8암호화소스
 
 
+_K1_CACHE: dict[str, list[str]] = {}
+
+
+def _fetch_current_k1_values() -> list[str]:
+    import requests
+
+    today = date.today().strftime('%Y_%m_%d')
+    if today in _K1_CACHE:
+        return _K1_CACHE[today]
+
+    body = requests.get(f'https://hometax.go.kr/js/comm/ui/common_te-min.js?postfix={today}').text
+    match = re.search(
+        r'testVal\s*=\s*\[\s*"([A-Za-z0-9]{30,60})"\s*,\s*"([A-Za-z0-9]{30,60})"\s*,\s*'
+        r'"([A-Za-z0-9]{30,60})"\s*,\s*"([A-Za-z0-9]{30,60})"\s*,\s*'
+        r'"([A-Za-z0-9]{30,60})"\s*,\s*"([A-Za-z0-9]{30,60})"\s*,\s*'
+        r'"([A-Za-z0-9]{30,60})"\s*\]',
+        body)
+    if not match:
+        raise RuntimeError('hometax common_te-min.js에서 testVal 7개 추출 실패')
+
+    _K1_CACHE[today] = list(match.groups())
+    return _K1_CACHE[today]
+
+
 def k1(second):
-    # TODO testVal 매번 바뀌는지 확인필요
-    testVal = ["bakfuRUXvh9c3POvkdfUDHF91jijBhV2BvsuWE966SY", "rns6HuMkhT3FN8cIELHqYW51xHpk4oGOTetFjZ3Wog",
-               "ZobgiyO5GpHBj4XfBxpIsdtuxOVGOuxfvJ3cl7hg", "tQpnppnLO4DhApYt4Wpi2fP3ikontfDj5e4gL8fatL0",
-               "qyDYuOUwZO2GCykWTJJZrgRIGTg6z3FPBrIAyHxxI", "RF899ggdKY31TR3beawC7r7QbLAW1of4OrRaSWypA",
-               "ASNbDSqkpdq6ckOpIoGUyO5E6xeVulnMBIQJwOAvEI"]
-    return testVal[int(second) % 7]
+    return _fetch_current_k1_values()[int(second) % 7]
 
 
 def k2(payload, testVal):
