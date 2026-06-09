@@ -549,7 +549,7 @@ class HometaxScraper:
         self.request_permission(screen_id='index_pp')
         res = self.session.post(
             'https://hometax.go.kr/wqAction.do?actionId=ATXPPCBA001R17&screenId=index_pp&popupYn=false&realScreenId=',
-            data=json.dumps({
+            data=self.nts_postfix_added({
                 "cncClCd": "01",
                 "srvcClCd": "01",
                 "menuHtrnId": "1100000000",
@@ -563,7 +563,7 @@ class HometaxScraper:
                 "athCd": "Y",
                 "menuId": "",
                 "prevMenuId": "",
-                "menuTtl": ""}) + '<nts<nts>nts>32k8yZmB2hWqWIwyDqt5v50oHY58M4RpVphs78jPDZg21',
+                "menuTtl": ""}),
             headers={'Content-Type': 'application/json'}
         )
         if res.json()['resultMsg']['result'] != self.LOGIN_SUCCESS_CODE:

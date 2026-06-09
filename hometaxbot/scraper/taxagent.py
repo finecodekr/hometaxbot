@@ -31,10 +31,10 @@ def 수임납세자(scraper: HometaxScraper, begin: date, end: date):
     res = scraper.session.post('https://hometax.go.kr/userAthEvtxMenuUtil', data={'type': 6})
     res = scraper.request_action_json('ATXPPCBA001R019', 'index_pp', json={
         'scrnId': "4804040000", 'pageInfoVO': {'totalCount': "0", 'pageSize': "10", 'pageNum': "1"}
-    }, nts_postfix=False)
+    })
     res = scraper.request_action_json('ATXPPCBA001R020', 'index_pp', json={
         'scrnId': "4804040000", 'pageInfoVO': {'totalCount': "0", 'pageSize': "10", 'pageNum': "1"}
-    }, nts_postfix=False)
+    })
     res = scraper.request_action_json('ATXPPAAA001R037', 'index_pp', json={"ttxppal032DVO":{"menuId":""}})
 
     scraper.request_permission('teht', 'UTEABHAA03')
