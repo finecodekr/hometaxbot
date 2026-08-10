@@ -21,6 +21,7 @@ dependencies = [
     "typer",
     "curl_cffi",
     "asn1crypto",
+    "beautifulsoup4",
 ]
 [project.urls]
 Home = "https://github.com/finecodekr/hometaxbot"

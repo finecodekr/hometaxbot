@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from calendar import monthrange
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from io import BytesIO
@@ -134,8 +135,62 @@ class 전자신고결과조회(HometaxModel):
     공급가액: Decimal  # 예시: 10500000
     금액: Decimal
     납부금액: Decimal
+    납부기한: date = None
     납부서: List[전자신고결과조회_납부서] = field(default_factory=list)
     data: dict = None
+
+    def __post_init__(self):
+        if not self.납부기한:
+            self.납부기한 = self.납부기한_식별()
+
+    def 납부기한_식별(self) -> date:
+        """정기신고의 법정 납부기한을 국세기본법상 기한 특례까지 반영해 반환한다.
+
+        수정신고·기한후신고, 개별 납부기한 연장과 분납은 이 모델의
+        정보만으로 확정할 수 없으므로 계산하지 않는다.
+        """
+        report_type = ' '.join(filter(None, (self.신고구분, self.신고유형, self.신고서종류)))
+        if '수정' in report_type or '기한후' in report_type:
+            return None
+
+        if self.세목코드 == 세목코드.원천세:
+            year_month = self.지급연월 or self.과세연월
+            if not year_month or len(year_month) < 6:
+                return None
+            year, month = int(year_month[:4]), int(year_month[4:6])
+            if '반기' in report_type:
+                deadline = date(year if month <= 6 else year + 1, 7 if month <= 6 else 1, 10)
+            else:
+                deadline = date(year + (month == 12), month % 12 + 1, 10)
+        elif self.세목코드 == 세목코드.부가세:
+            if not self.과세기간종료일:
+                return None
+            period_end = self.과세기간종료일
+            deadline = date(period_end.year + (period_end.month == 12), period_end.month % 12 + 1, 25)
+        elif self.세목코드 == 세목코드.법인세:
+            if not self.과세기간종료일:
+                return None
+            period_end = self.과세기간종료일
+            month = period_end.month + 3
+            year = period_end.year + (month - 1) // 12
+            month = (month - 1) % 12 + 1
+            deadline = date(year, month, monthrange(year, month)[1])
+        elif self.세목코드 == 세목코드.종합소득세:
+            if not self.과세기간종료일:
+                return None
+            period_end = self.과세기간종료일
+            deadline = date(period_end.year + 1, 6 if '성실신고' in report_type else 5,
+                            30 if '성실신고' in report_type else 31)
+        else:
+            return None
+
+        from hometaxbot.tax_schedule import 세무일정
+
+        schedules = [schedule for schedule in 세무일정(self, deadline.year)
+                     if deadline <= schedule['begin'] <= deadline + timedelta(days=10)]
+        if not schedules:
+            return None
+        return min(schedule['begin'] for schedule in schedules)
 
 
 @dataclass(kw_only=True)
