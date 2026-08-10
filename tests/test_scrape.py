@@ -2,6 +2,7 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
+from hometaxbot import models
 from hometaxbot.models import 세목코드
 from hometaxbot.scraper import HometaxScraper, reports, transactions
 from tests import testdata
@@ -19,6 +20,10 @@ class TestScrape(unittest.TestCase):
         results = list(reports.전자신고결과조회(scraper, begin, end))
         self.assertIsInstance(results[0].접수일, date)
         self.assertIsInstance(results[0].금액, Decimal)
+        self.assertIsInstance(results[0].납부서, list)
+        for payment in results[0].납부서:
+            self.assertIsInstance(payment, models.전자신고결과조회_납부서)
+            self.assertIsInstance(payment.납부금액, Decimal)
 
         self.assertIsNotNone(next(reports.납부내역(scraper, begin, end)).전자납부번호)
         self.assertIsNotNone(next(reports.납부내역(scraper, begin, end)).전자납부번호)

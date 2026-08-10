@@ -40,7 +40,23 @@ def 전자신고결과조회(scraper: HometaxScraper, begin: date, end: date):
                     "pageSize": "0",
                     "pageNum": "0",
                 }):
-            yield model_from_hometax_json(models.전자신고결과조회, element)
+            report = model_from_hometax_json(models.전자신고결과조회, element)
+            payment_data = scraper.request_action_json(
+                'ATERNABA010R07', 'UTERNAAB40', popup_yn='true', subdomain='teht',
+                json={
+                    "pubcUserNo": "",
+                    "rtnCvaId": report.접수번호,
+                    "itrfCd": "",
+                    "txprNo": "",
+                    "rcatNo": "",
+                    "rcatDtm": "",
+                })
+            report.납부서 = []
+            for payment in payment_data.get('whtxTrtFndtMateCrtnDVOList') or []:
+                payment_model = model_from_hometax_json(models.전자신고결과조회_납부서, payment)
+                payment_model.data = payment
+                report.납부서.append(payment_model)
+            yield report
 
 
 def 세금신고내역(scraper: HometaxScraper, begin: date, end: date):

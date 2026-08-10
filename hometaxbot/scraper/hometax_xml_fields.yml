@@ -92,6 +92,27 @@
     rcatMthdCd: # 14
     pmtCmpoTypeCd: # ZZ
     cvaAplnDtm: # 20191203145924
+전자신고결과조회_납부서:
+    rtnCvaId: 접수번호
+    pmtItrfCd: 세목코드
+    pmtItrfNm: 세목
+    txnrmYm: 신고연월
+    itrfYm: 신고연월
+    dcsClCd: 결정구분
+    elctPmtPblNo: 전자납부발행번호
+    bankElctPmtNo: 전자납부번호
+    elctPmtNo: 전자납부번호
+    inctxPmtTxamt: 소득세납부금액
+    fnftxPmtTxamt: 농어촌특별세납부금액
+    stmnKndCd: 신고서종류코드
+    stmnKndNm: 신고서종류
+    rtnClCd: 신고구분코드
+    rtnClDetailCd: 신고구분상세코드
+    rtnClNm: 신고구분
+    rtnClDetailNm: 신고유형
+    txnrmStrtDt: 과세기간시작일
+    txnrmEndDt: 과세기간종료일
+    pmtCmpoTypeCd: 납부서구성코드
 납부내역:
     romDt: 납부일  # 20200209
     dmstxRomAmt: 금액  # 27000

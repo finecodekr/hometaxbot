@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -20,6 +20,40 @@ class 세목코드(Enum):
     양도소득세 = '22'
     법인세 = '31'
     부가세 = '41'
+
+
+@dataclass(kw_only=True)
+class 전자신고결과조회_납부서(HometaxModel):
+    접수번호: str
+    세목코드: str
+    세목: str
+    신고연월: str
+    결정구분: str = None
+    전자납부발행번호: str = None
+    전자납부번호: str = None
+    소득세납부금액: Decimal = Decimal(0)
+    농어촌특별세납부금액: Decimal = Decimal(0)
+    신고서종류코드: str = None
+    신고서종류: str = None
+    신고구분코드: str = None
+    신고구분상세코드: str = None
+    신고구분: str = None
+    신고유형: str = None
+    과세기간시작일: date = None
+    과세기간종료일: date = None
+    납부서구성코드: str = None
+    data: dict = None
+
+    def __post_init__(self):
+        if (not self.전자납부번호
+                and self.신고연월 and self.결정구분 and self.전자납부발행번호):
+            self.전자납부번호 = ('0126' + self.신고연월[2:] + self.결정구분
+                              + self.세목코드 + self.전자납부발행번호)
+
+    @property
+    def 납부금액(self) -> Decimal:
+        return ((self.소득세납부금액 or Decimal(0))
+                + (self.농어촌특별세납부금액 or Decimal(0)))
 
 
 @dataclass(kw_only=True)
@@ -100,6 +134,7 @@ class 전자신고결과조회(HometaxModel):
     공급가액: Decimal  # 예시: 10500000
     금액: Decimal
     납부금액: Decimal
+    납부서: List[전자신고결과조회_납부서] = field(default_factory=list)
     data: dict = None
 
 
